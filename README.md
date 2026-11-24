@@ -79,7 +79,7 @@ node scripts/serve.js        # 启动本地静态服务
 
 **服务器部署（Docker + 阿里云 ACR）**
 
-`deploy/` 内提供 Dockerfile、nginx 配置、docker-compose 与构建/推送脚本；完整步骤（ACR 准备、推送、服务器上线、升级回滚）见 [doc/DEPLOY.md](doc/DEPLOY.md) 方式四。
+`deploy/` 内提供 Dockerfile、nginx 配置、docker-compose 与构建/推送脚本；完整步骤（ACR 准备、推送、服务器上线、升级回滚）见 [doc/DEPLOY.md](doc/DEPLOY.md) 方式四；使用 1Panel 面板部署见方式五（`deploy/docker-compose.1panel.yml`）。
 
 无需构建，修改 `static/js/app.js`、`static/css/app.css` 后刷新即可生效。天地图注记需把 `config.example.js` 复制为 `config.js` 并填入自用 tk（天地图控制台创建「浏览器端」应用，白名单可留空）；`config.js` 已被 `.gitignore` 忽略、不会入库，留空则自动使用 Esri 注记。可选 `siteName` 用于自用站点名（如乡镇名），留空时页面标题显示「卫星图」。
 

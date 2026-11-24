@@ -1,0 +1,24 @@
+services:
+  kml-viewer:
+    image: registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.11
+    container_name: kml-viewer
+    ports:
+      # 左侧为宿主机端口，被占用时改成 8090 等；仅经 1Panel 反代可改为 "127.0.0.1:8080:80"
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    # 可选：覆盖镜像内的 config.js（如自定义 siteName）。取消注释前先在编排目录创建 config.js
+    # volumes:
+    #   - ./config.js:/usr/share/nginx/html/config.js:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

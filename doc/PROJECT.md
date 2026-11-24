@@ -122,9 +122,10 @@ Docker / ACR：
 - `deploy/nginx.conf`：`index.html`、`config.js` 与 `static/js|css` 不缓存（升级镜像立即生效），`static/libs/` 30 天 immutable，开启 gzip；
 - `.github/workflows/acr.yml`：推送 `v*` 标签自动构建并推送 ACR；显式关闭 `provenance`/`sbom`（ACR 不接受 buildx 默认证明清单）；
 - `deploy/docker-compose.yml`：镜像由 `KML_IMAGE` 指定（默认 ACR 占位地址），端口 `KML_PORT`（默认 8080→80），`restart: unless-stopped`；
+- `deploy/docker-compose.1panel.yml`：1Panel 编排专用，固定镜像地址与端口，内置健康检查与日志轮转，可选挂载 `config.js`；
 - `deploy/build.ps1|sh`、`push-acr.ps1|sh`：参数化 Registry / Namespace / Repo / Tag，默认 `registry.cn-hangzhou.aliyuncs.com`；
 - 根目录 `.dockerignore` 排除文档、测试、脚本与部署脚本，构建上下文最小化；
-- 完整流程见 `doc/DEPLOY.md` 方式四。
+- 完整流程见 `doc/DEPLOY.md` 方式四；1Panel 面板部署见方式五。
 
 ## 7. 代码规范
 

@@ -126,6 +126,111 @@ KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.11 \
 - ACR 不接受 buildx 默认附带的 provenance 证明清单，会报 `denied: unknown manifest class for application/vnd.oci.empty.v1+json`；工作流已设 `provenance: false`、`sbom: false`，自建流水线需同样关闭；本地 `docker build` 不受影响；
 - 构建依赖 `nginx:1.27-alpine` 基础镜像，可从阿里云镜像加速器拉取。
 
+## 方式五：1Panel Docker 编排
+
+适用于已在服务器安装 1Panel、希望通过面板管理容器的场景。compose 文件见 `deploy/docker-compose.1panel.yml`，只做静态站点，无数据库、无后端进程。
+
+### 1. 登录 ACR 私有仓库
+
+ACR 仓库建议设为私有；未登录时编排会报 `pull access denied`。先在面板添加仓库：
+
+1Panel → 容器 → 镜像 → 镜像仓库 → 创建仓库：
+
+| 字段 | 值 |
+| --- | --- |
+| 地址 | `registry.cn-hangzhou.aliyuncs.com` |
+| 用户名 | ACR 用户名（阿里云账号全名） |
+| 密码 | ACR 控制台设置的固定密码 |
+
+保存后可在「镜像」页尝试拉取 `registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.11` 验证。也可在 1Panel 终端执行：
+
+```bash
+docker login --username=<ACR用户名> registry.cn-hangzhou.aliyuncs.com
+```
+
+### 2. 创建编排
+
+1Panel → 容器 → 编排 → 创建编排：
+
+- 名称：`kml-viewer`
+- 来源：选择「输入」或「粘贴」，内容用 `deploy/docker-compose.1panel.yml` 全文
+- 安装目录：保持面板默认（通常为 `/opt/1panel/docker/compose/kml-viewer`）
+- 确认创建后启动
+
+```yaml
+services:
+  kml-viewer:
+    image: registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.11
+    container_name: kml-viewer
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+端口冲突时把 `"8080:80"` 左侧改成 `8090` 等；若只经 1Panel 反向代理访问，可写成 `"127.0.0.1:8080:80"` 避免直接暴露公网。
+
+### 3. 放行端口
+
+1Panel → 主机 → 防火墙放行 `8080/tcp`；云服务器还需在安全组放行同一端口。浏览器访问 `http://<服务器IP>:8080`，右下角应显示 `v1.0.11 by Mr lin`。
+
+### 4. 可选：自定义站点名
+
+镜像内 `config.js` 只有构建时注入的天地图 tk，页面标题为通用「卫星图」。需要在服务器显示自用站名时：
+
+1. 在编排安装目录（如 `/opt/1panel/docker/compose/kml-viewer/`）新建 `config.js`：
+
+   ```js
+   window.KML_CONFIG = {
+     tiandituTk: '<天地图浏览器端 tk>',
+     siteName: '<站点名>'
+   };
+   ```
+
+2. 在编排 YAML 中取消这段注释：
+
+   ```yaml
+   volumes:
+     - ./config.js:/usr/share/nginx/html/config.js:ro
+   ```
+
+3. 保存并重建容器。
+
+注意：挂载目标必须是**已存在的文件**。文件缺失时 Docker 会创建同名目录，导致 `config.js` 返回 403、注记回退 Esri。挂载文件会整体替换镜像内配置，`tiandituTk` 也必须一并填写。
+
+### 5. 升级与回滚
+
+把 YAML 中镜像标签改成新版本（如 `v1.0.12`），在编排页面执行「拉取镜像」→「重建」。回滚把标签换回旧版本再重建即可。生产环境建议固定版本标签，不建议长期用 `latest`。
+
+### 6. 反向代理与 HTTPS（可选）
+
+1. 编排端口改为 `"127.0.0.1:8080:80"` 并重建；
+2. 1Panel → 网站 → 创建网站，选择「反向代理」，目标填 `http://127.0.0.1:8080`；
+3. 绑定域名并申请证书，之后用 `https://<域名>` 访问；防火墙可只保留 80/443。
+
+### 7. 常见问题
+
+| 现象 | 原因与处理 |
+| --- | --- |
+| `pull access denied` / `unauthorized` | ACR 未登录或密码错误，按第 1 步重新添加镜像仓库 |
+| 编排启动失败、端口被占用 | `ss -ltnp \| grep 8080` 查占用进程，或改宿主机端口 |
+| 页面正常但天地图注记缺失 | 镜像内 tk 失效；按第 4 步挂载含新 tk 的 `config.js` |
+| 挂载后 `config.js` 403 | 宿主机文件不存在被 Docker 建成目录，删除目录并创建文件 |
+| 容器状态 unhealthy | `docker logs kml-viewer` 查看；容器内 `wget -qO- http://127.0.0.1/` 应返回页面 |
+| 地图空白、瓦片不显示 | 是浏览器直连 Esri/高德/天地图，检查客户端网络与 443 放行，与容器出网无关 |
+
 ## 运维说明
 
 - 无后端进程、无数据库、无日志；
