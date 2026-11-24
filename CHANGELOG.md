@@ -30,6 +30,10 @@
 - 触屏隐藏 Leaflet +/- 与比例尺，改用双指缩放；attribution、署名与提示在抽屉出现时自动上移
 - 选地块、双击定位与加载文件时，按抽屉高度把目标移到可见区域中心，避免被面板遮挡
 
+**发布**
+
+- 推送 tag v1.0.12 触发 run 45415825844，结论 success；ACR 产出 `v1.0.12` 与 `latest`，digest `sha256:08f2b673453164ccbed81c58cfa3c94fe2bcdc385cb8777473dfd070d9b3e5d0`
+
 **说明**
 
 - 桌面布局与功能不变；手机端站名仍由 `config.js` 的 `siteName` 控制

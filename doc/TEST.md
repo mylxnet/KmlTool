@@ -93,6 +93,7 @@
 | 78 | 重建仓库后 Actions 实跑（v1.0.11） | 新仓库为空时推送 main + tag，workflow 成功并产出 v1.0.11/latest | 2026-11-24 旧仓库删除后同名重建，写入 5 个 Secrets；推送 tag v1.0.11（commit 204ec8f）触发 run 45405215908，结论 success | 通过 |
 | 79 | ACR 镜像重建与脱敏核验（v1.0.11） | 删除旧 ACR 仓库后重跑，镜像只剩脱敏版本且层内无地名 | registry 接口不支持整仓删除（DELETE 返回 401/404，仅授予 pull），由用户在 ACR 控制台删除 `mylxnet/kml-viewer`；重跑 run 45405215908（attempt 2）结论 success，ACR 自动重建仓库，标签列表仅 `latest`、`v1.0.11`，两者 manifest 均 200；逐层解压扫描：`v1.0.10` 曾有两层含真实站点名，重建后两层均 `siteName=false` 且版本为 v1.0.11 | 通过 |
 | 80 | 手机端布局与信息卡避让（v1.0.12） | ≤768px 工具栏两行、侧栏底部抽屉、信息卡不越界、桌面样式不变 | 无头 Chrome 移动仿真 390×844（DPR1 + touch）：toolbar 92px、下拉组 370×32、sidebar 374×354（42dvh）、地块行 42px、筛选框 16px、`scrollWidth=390` 无横向溢出；加载 sample.kml 后点头行，信息卡 rect（left 97 / top 100 / right 292 / bottom 253）在视口内且位于工具栏下方、抽屉上方，地块中心 y=266 落在可见区；360×640 下 `scrollWidth=360`、sidebar 344×269；切回 1440×900：toolbar 56、sidebar 300、筛选 13px，均无溢出；`Runtime.exceptionThrown` 0 条 | 通过 |
+| 81 | v1.0.12 Actions 实跑与 ACR 推送 | 推送 tag 后构建成功，产出 v1.0.12 与 latest | 推送 commit b625dc7 与 tag v1.0.12，触发 run 45415825844，结论 success；日志中 build-push 步骤推送 `kml-viewer:v1.0.12` 与 `kml-viewer:latest`，同一 digest `sha256:08f2b673453164ccbed81c58cfa3c94fe2bcdc385cb8777473dfd070d9b3e5d0`，镜像标签 `org.opencontainers.image.version=v1.0.12` | 通过 |
 
 ## 数值核对方式
 
@@ -108,7 +109,7 @@
 - 筛选基于「当前单位下格式化的数值文本」匹配，切换面积单位后同一数字关键字可能不再命中（属预期）；
 - 点击居中按整页屏幕中心计算（地图满屏，x≈720），侧栏浮层不影响结果；点、线点击不居中；双击侧栏行的 `flyToBounds` 会覆盖单击的居中动画；
 - 清空仅移除图层并把视野飞回初始全球视野（`[34,108]` 4 级），底图 / 注记来源 / 面积单位偏好跨清空保留；
-- Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.11，run 45405215908）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
+- Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.12，run 45415825844）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
 - 手机端不显示 Leaflet +/- 与比例尺，依赖双指缩放；底部抽屉固定 42dvh（最高 380px），横屏或超矮屏时可见地图区会变小；手机浏览器不支持拖拽上传，使用顶部「上传 KML / KMZ」按钮；
 - Actions 首轮实跑暴露 ACR 对 buildx 默认 provenance 的兼容问题（`unknown manifest class for application/vnd.oci.empty.v1+json`），v1.0.10 已关闭 `provenance`/`sbom` 并实跑通过；后续若改动构建步骤，需保留这两项关闭；
 - 天地图乡村注记稀疏（17 级约 7/25 瓦片有内容，18 级仅零星 POI）；注记按原生层级显示、字号不放大，放大到 18 级后乡村地名会变少（数据限制）；tk 为个人「浏览器端」密钥，失效时仅注记缺失；
