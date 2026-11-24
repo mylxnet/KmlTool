@@ -63,7 +63,7 @@ server {
    git push origin v1.0.11
    ```
 
-3. Actions 完成后，ACR 中出现 `v1.0.11` 与 `latest`（v1.0.11 已实跑验证：命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
+3. Actions 完成后，ACR 中出现 `v1.0.11` 与 `latest`（v1.0.11 已实跑验证：run 45405215908，命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
 
 仓库本身不含 tk：工作流用 Secret 生成 `config.js` 后再打包；本地构建则使用项目根目录的 `config.js`。
 

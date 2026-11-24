@@ -22,7 +22,7 @@ v1.0.11（2026-11-24）
 - 首页半透明主题面板「卫星图 KML 定位查询」+ 署名，无选择文件按钮（工具条上传或拖拽）；标题默认通用，`config.js` 的 `siteName` 可前置自用站点名
 - 清空复位：移除全部图层后地图平滑飞回初始全球视野（`HOME_VIEW` `[34,108]` 4 级），首页主题面板重现；底图/注记/单位偏好保留
 - Docker / ACR 部署：`deploy/Dockerfile`（nginx:1.27-alpine）+ `nginx.conf` + `docker-compose.yml` + 构建/推送脚本（PowerShell / sh），部署手册见 `doc/DEPLOY.md` 方式四
-- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.10 已实跑成功，关闭 provenance/sbom 以兼容 ACR）
+- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.11 仓库重建后实跑成功 run 45405215908，关闭 provenance/sbom 以兼容 ACR）
 - tk 外置：源码不含天地图 tk，本地 `config.js`（不入库）提供，新增 `config.example.js` 模板
 - 面积单位切换（平方米/公顷/亩/平方公里）并记忆，顶栏下拉
 - 编码兼容 UTF-8 / GB18030 / GBK
@@ -57,6 +57,8 @@ v1.0.11（2026-11-24）
 | 21 | Esri 影像上放大到 18 级后天地图镇村名消失 | 天地图乡村 18 级注记数据只剩零星 POI 图标，大部分瓦片为空白 | v1.0.4 曾设 `maxNativeZoom: 17` 沿用 17 级注记放大显示；用户反馈字号变大，v1.0.5 取消，按原生 18 级显示 | 注记方案要在「放大后仍有名」与「字号不变」之间取舍，由用户裁决；注记覆盖度必须按层级实测 |
 | 22 | 自动化截图报 `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`（visibilityState=hidden） | 内置浏览器窗口不可见时无法取帧 | 本轮改用本机 Chrome `--headless=new` + CDP（`Page.captureScreenshot`）截真实页面；内置浏览器重导航偶尔可恢复 | 截图通道不可用时，优先换真实浏览器渲染，而不是伪造合成图 |
 | 23 | 自动化断言「点击后中心误差 0.047°」 | 隐藏标签页 rAF 被暂停，`flyTo` 动画不推进，读取到的是中途坐标 | 交互/动画类断言改在无头 Chrome（可见渲染）中跑，误差 0（行点击）/ 4e-5°（地图点击，popup 自动避让后微调） | 页面不可见时动画不会按时间推进，不能以 hidden 页结果判断动画逻辑 |
+| 24 | `DELETE /repos/mylxnet/KmlTool` 返回 403 | classic PAT 仅有 `repo, workflow, write:packages`，删除仓库需要 `delete_repo` scope，管理员权限不能替代 | 改由仓库所有者在网页 Settings → Danger Zone 删除，再同名重建 | 涉及删除的自动化先核对 token scopes，不要假设 admin 权限足够 |
+| 25 | 重建仓库的 `POST /user/repos` 返回 400「Problems parsing JSON」 | Git Bash 下 `curl -d` 携带中文描述时请求体被转写损坏 | 用 UTF-8 JSON 文件配合 `--data-binary @file`，或改用纯 ASCII 描述 | 含非 ASCII 的 JSON 一律走文件体，避免命令行编码问题 |
 
 ## 架构决策
 
@@ -83,7 +85,7 @@ v1.0.11（2026-11-24）
 - 面周长只计外边界（不含内部洞）；跨 180° 经线的要素显示会异常；
 - GroundOverlay（贴地图片）、gx:Track（轨迹回放）等冷门 KML 元素不渲染；
 - 超大文件（>100MB）解析较慢（加载层有提示）；
-- Docker 镜像构建与推送已由 GitHub Actions 实跑验证（v1.0.10，ACR 命名空间 `mylxnet`）；开发机未安装 Docker，容器运行与 nginx 配置仍仅静态核对；
+- Docker 镜像构建与推送已由 GitHub Actions 实跑验证（v1.0.11，run 45405215908，ACR 命名空间 `mylxnet`）；开发机未安装 Docker，容器运行与 nginx 配置仍仅静态核对；
 - 阿里云 ACR 不接受 buildx 默认 provenance 证明清单，工作流已显式关闭 `provenance`/`sbom`，后续修改构建步骤需保留；
 - Firefox 无 GBK TextDecoder，GBK 文件会回退报错或乱码（建议 Edge/Chrome）。
 

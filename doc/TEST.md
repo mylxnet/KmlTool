@@ -90,6 +90,7 @@
 | 75 | GitHub Actions 工作流静态核对（v1.0.9） | 触发条件、Secret 引用、构建路径正确 | 静态核对 `.github/workflows/acr.yml`：`v*` 标签与 workflow_dispatch 触发；用 `secrets.TIANDITU_TK` 生成 `config.js`；镜像名来自 `secrets.ACR_REGISTRY/ACR_NAMESPACE`；`build-push-action` context `.`、file `deploy/Dockerfile`、push=true、标签为 tag + latest。首轮实跑（run #1/#2）因未配 Secrets、ACR 拒绝 buildx 默认 provenance 而失败，v1.0.10 已关闭 `provenance`/`sbom` 修复 | 静态通过 |
 | 76 | GitHub Actions 实跑推 ACR（v1.0.10） | workflow 成功构建并推送镜像，镜像内含注入的 config.js | 推送 tag v1.0.10 触发 run 45402313832，结论 success；ACR `mylxnet/kml-viewer` 由首次推送自动创建，标签为 `latest`、`v1.0.10`；manifest 为 OCI image manifest（非 index，provenance 已关闭）；下载镜像层核对：`/usr/share/nginx/html/config.js` 含 `window.KML_CONFIG`、tk 长度 32 且与本地 `config.js` 一致；`index.html` 标题与署名均为 v1.0.10（该旧仓库运行记录已随 v1.0.11 仓库重建移除） | 通过 |
 | 77 | 站点名脱敏与 siteName（v1.0.11） | 无配置时标题通用；配置 siteName 后前缀生效；文档截图不含地域名 | 无头 Chrome 1440×900：无 `siteName` 时 title「卫星图 KML 定位查询 v1.0.11」、brand「卫星图」、hero「卫星图 KML 定位查询」；临时写入 `siteName:'示例镇'` 后 title「示例镇卫星图 KML 定位查询 v1.0.11」、brand「示例镇卫星图」、hero「示例镇卫星图 KML 定位查询」；7 张文档截图均改用 `sample.kml`/`sample.kmz` 通用样例，顶栏与信息卡无地域名，`Runtime.exceptionThrown` 0 条 | 通过 |
+| 78 | 重建仓库后 Actions 实跑（v1.0.11） | 新仓库为空时推送 main + tag，workflow 成功并产出 v1.0.11/latest | 2026-11-24 旧仓库删除后同名重建，写入 5 个 Secrets；推送 tag v1.0.11（commit 204ec8f）触发 run 45405215908，结论 success；ACR 标签列表为 `latest, v1.0.10, v1.0.11`，`v1.0.11` 与 `latest` 的 OCI manifest 均返回 200；旧 v1.0.10 镜像按要求保留未动 | 通过 |
 
 ## 数值核对方式
 
@@ -105,7 +106,7 @@
 - 筛选基于「当前单位下格式化的数值文本」匹配，切换面积单位后同一数字关键字可能不再命中（属预期）；
 - 点击居中按整页屏幕中心计算（地图满屏，x≈720），侧栏浮层不影响结果；点、线点击不居中；双击侧栏行的 `flyToBounds` 会覆盖单击的居中动画；
 - 清空仅移除图层并把视野飞回初始全球视野（`[34,108]` 4 级），底图 / 注记来源 / 面积单位偏好跨清空保留；
-- Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.10）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
+- Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.11，run 45405215908）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
 - Actions 首轮实跑暴露 ACR 对 buildx 默认 provenance 的兼容问题（`unknown manifest class for application/vnd.oci.empty.v1+json`），v1.0.10 已关闭 `provenance`/`sbom` 并实跑通过；后续若改动构建步骤，需保留这两项关闭；
 - 天地图乡村注记稀疏（17 级约 7/25 瓦片有内容，18 级仅零星 POI）；注记按原生层级显示、字号不放大，放大到 18 级后乡村地名会变少（数据限制）；tk 为个人「浏览器端」密钥，失效时仅注记缺失；
 - Qoder 内置浏览器窗口不可见时截图报 `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`，v1.0.4 起的页面截图改用本机 Chrome 无头 + CDP 完成；
