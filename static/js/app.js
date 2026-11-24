@@ -342,6 +342,21 @@ const POPUP_OPTS = {
   autoPanPaddingTopLeft: L.point(330, 72), autoPanPaddingBottomRight: L.point(12, 56)
 };
 
+/* 手机端信息卡限宽，并避开顶部工具栏与底部抽屉 */
+function syncPopupLayout(rec) {
+  const popup = rec.layer && rec.layer.getPopup && rec.layer.getPopup();
+  if (!popup) return;
+  const mobile = isMobileView();
+  popup.options.maxWidth = mobile ? Math.max(240, window.innerWidth - 56) : 340;
+  popup.options.autoPanPaddingTopLeft = mobile ? L.point(12, 100) : L.point(330, 72);
+  popup.options.autoPanPaddingBottomRight = mobile ? L.point(12, sheetHeight() + 16) : L.point(12, 56);
+}
+
+function openCard(rec) {
+  syncPopupLayout(rec);
+  rec.layer.openPopup();
+}
+
 function createFeatureLayer(rec) {
   const layer = L.geoJSON(
     { type: 'Feature', properties: {}, geometry: displayGeom(rec.geometry) },
@@ -365,7 +380,7 @@ function createFeatureLayer(rec) {
   layer.off('click', layer._openPopup); // 弹卡统一由选中流程处理，避免自动弹卡与取消冲突
   layer.on('click', () => {
     if (state.selected === rec) clearSelected();
-    else { setSelected(rec); rec.layer.openPopup(); centerOnRecord(rec); }
+    else { setSelected(rec); openCard(rec); centerOnRecord(rec); }
   });
   layer.on('popupclose', () => {
     // 仅当图层仍在地图上才视为用户关闭；底图切换重建时旧层已移除，不应误清选中
@@ -456,20 +471,45 @@ function setActiveRow(rec) {
   if (rec && rec.row) rec.row.classList.add('selected');
 }
 
+const MOBILE_VIEW = window.matchMedia('(max-width: 768px)');
+const isMobileView = () => MOBILE_VIEW.matches;
+
+function sheetHeight() {
+  if (!isMobileView()) return 0;
+  const el = $('sidebar');
+  if (!el || el.classList.contains('hidden')) return 0;
+  return el.getBoundingClientRect().height;
+}
+
+/* 手机上底部抽屉会遮住下半屏，把目标点映射到可见区域中心 */
+function centerForVisibleMap(center) {
+  const sh = sheetHeight();
+  if (!sh) return center;
+  const z = map.getZoom();
+  return map.unproject(map.project(center, z).add([0, sh / 2]), z);
+}
+
+function boundsOptions(extra) {
+  const opts = Object.assign({ maxZoom: currentMaxZoom() }, extra);
+  const sh = sheetHeight();
+  if (sh) opts.paddingBottomRight = [0, sh + 12];
+  return opts;
+}
+
 function flyToFeature(rec) {
   const b = rec.layer.getBounds();
   const mz = currentMaxZoom(); // 封顶在卫星图有瓦片的层级，避免放大后空白
   if (rec.type === '点') {
-    map.flyTo(b.getCenter(), Math.max(map.getZoom(), 15), { maxZoom: mz });
+    map.flyTo(centerForVisibleMap(b.getCenter()), Math.max(map.getZoom(), 15), { maxZoom: mz });
   } else {
-    map.flyToBounds(b.pad(0.5), { maxZoom: mz });
+    map.flyToBounds(b.pad(0.5), boundsOptions());
   }
 }
 
-/* 点击地块：把地块外接矩形中心平移到屏幕中央（缩放不变）；点、线不处理 */
+/* 点击地块：把地块外接矩形中心平移到可见区域中央（缩放不变）；点、线不处理 */
 function centerOnRecord(rec) {
   if (rec.type !== '面') return;
-  map.flyTo(rec.layer.getBounds().getCenter(), map.getZoom(), { animate: true, duration: 0.6 });
+  map.flyTo(centerForVisibleMap(rec.layer.getBounds().getCenter()), map.getZoom(), { animate: true, duration: 0.6 });
 }
 
 function detailContent(rec) {
@@ -564,7 +604,7 @@ function rerenderFeatures() {
   if (selectedRec && state.files.has(selectedRec.fileId)) {
     if (recVisible(selectedRec)) {
       setSelected(selectedRec);
-      if (wasPopupOpen) selectedRec.layer.openPopup(); // 信息卡跨底图切换保持可见
+      if (wasPopupOpen) openCard(selectedRec); // 信息卡跨底图切换保持可见
     }
   }
 }
@@ -636,11 +676,11 @@ function renderSidebar() {
       row.append(cb, sw, nm);
       row.addEventListener('click', () => {
         if (state.selected === rec) clearSelected();
-        else { setSelected(rec); rec.layer.openPopup(); centerOnRecord(rec); }
+        else { setSelected(rec); openCard(rec); centerOnRecord(rec); }
       });
       row.addEventListener('dblclick', () => {
         setSelected(rec);
-        rec.layer.openPopup();
+        openCard(rec);
         flyToFeature(rec);
       });
       row.addEventListener('mouseenter', () => highlight(rec, true));
@@ -663,6 +703,7 @@ function updateEmptyState() {
   const empty = state.files.size === 0;
   $('dropzone').classList.toggle('hidden', !empty);
   $('sidebar').classList.toggle('hidden', empty);
+  document.body.classList.toggle('has-files', !empty);
   $('btn-clear').disabled = empty;
 }
 
@@ -726,7 +767,7 @@ async function loadFile(file) {
   state.files.set(fileRec.id, fileRec);
   applyVisibility();
   renderSidebar();
-  map.flyToBounds(fileRec.group.getBounds().pad(0.3), { maxZoom: currentMaxZoom() });
+  map.flyToBounds(fileRec.group.getBounds().pad(0.3), boundsOptions());
   toast(`已加载「${file.name}」：${fileRec.features.length} 个要素`);
 }
 

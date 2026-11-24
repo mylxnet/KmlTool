@@ -5,7 +5,7 @@
 - 平台：Windows 10（x64）
 - 浏览器：Edge（Chromium，Qoder 内置浏览器自动化实测）；v1.0.4 起截图改用本机 Chrome（`--headless=new` + CDP `Page.captureScreenshot`，因内置浏览器窗口隐藏无法取帧）
 - 服务：`node scripts/serve.js` @ http://127.0.0.1:8000
-- 日期：2026-11-24，版本 v1.0.11（v1.0.1–v1.0.10 用例保留为回归历史；v1.0.11 做站点名脱敏，用例 77 覆盖默认标题与 siteName）
+- 日期：2026-11-24，版本 v1.0.12（v1.0.1–v1.0.11 用例保留为回归历史；v1.0.12 做手机端适配，用例 80 覆盖 390/360 视口与桌面回归）
 
 > 说明：用例 1–44 是 v1.0.1 / v1.0.2 的历史记录；「白色光晕」「悬停提示层」「选中隐藏其他要素」「Esri 19 级封顶」「悬停 3 秒出卡」等行为已在 v1.0.3 变更；v1.0.3 用例 45–58 仍适用。v1.0.4 新增的注记来源改为三档下拉（原「地名标注」复选框，见用例 25 已废止）。v1.0.7 新增清空复位用例 71–72；v1.0.9 天地图 tk 改为本地 `config.js` 外置，用例 74 覆盖有/无配置两种情况。
 
@@ -92,6 +92,7 @@
 | 77 | 站点名脱敏与 siteName（v1.0.11） | 无配置时标题通用；配置 siteName 后前缀生效；文档截图不含地域名 | 无头 Chrome 1440×900：无 `siteName` 时 title「卫星图 KML 定位查询 v1.0.11」、brand「卫星图」、hero「卫星图 KML 定位查询」；临时写入 `siteName:'示例镇'` 后 title「示例镇卫星图 KML 定位查询 v1.0.11」、brand「示例镇卫星图」、hero「示例镇卫星图 KML 定位查询」；7 张文档截图均改用 `sample.kml`/`sample.kmz` 通用样例，顶栏与信息卡无地域名，`Runtime.exceptionThrown` 0 条 | 通过 |
 | 78 | 重建仓库后 Actions 实跑（v1.0.11） | 新仓库为空时推送 main + tag，workflow 成功并产出 v1.0.11/latest | 2026-11-24 旧仓库删除后同名重建，写入 5 个 Secrets；推送 tag v1.0.11（commit 204ec8f）触发 run 45405215908，结论 success | 通过 |
 | 79 | ACR 镜像重建与脱敏核验（v1.0.11） | 删除旧 ACR 仓库后重跑，镜像只剩脱敏版本且层内无地名 | registry 接口不支持整仓删除（DELETE 返回 401/404，仅授予 pull），由用户在 ACR 控制台删除 `mylxnet/kml-viewer`；重跑 run 45405215908（attempt 2）结论 success，ACR 自动重建仓库，标签列表仅 `latest`、`v1.0.11`，两者 manifest 均 200；逐层解压扫描：`v1.0.10` 曾有两层含真实站点名，重建后两层均 `siteName=false` 且版本为 v1.0.11 | 通过 |
+| 80 | 手机端布局与信息卡避让（v1.0.12） | ≤768px 工具栏两行、侧栏底部抽屉、信息卡不越界、桌面样式不变 | 无头 Chrome 移动仿真 390×844（DPR1 + touch）：toolbar 92px、下拉组 370×32、sidebar 374×354（42dvh）、地块行 42px、筛选框 16px、`scrollWidth=390` 无横向溢出；加载 sample.kml 后点头行，信息卡 rect（left 97 / top 100 / right 292 / bottom 253）在视口内且位于工具栏下方、抽屉上方，地块中心 y=266 落在可见区；360×640 下 `scrollWidth=360`、sidebar 344×269；切回 1440×900：toolbar 56、sidebar 300、筛选 13px，均无溢出；`Runtime.exceptionThrown` 0 条 | 通过 |
 
 ## 数值核对方式
 
@@ -108,6 +109,7 @@
 - 点击居中按整页屏幕中心计算（地图满屏，x≈720），侧栏浮层不影响结果；点、线点击不居中；双击侧栏行的 `flyToBounds` 会覆盖单击的居中动画；
 - 清空仅移除图层并把视野飞回初始全球视野（`[34,108]` 4 级），底图 / 注记来源 / 面积单位偏好跨清空保留；
 - Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.11，run 45405215908）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
+- 手机端不显示 Leaflet +/- 与比例尺，依赖双指缩放；底部抽屉固定 42dvh（最高 380px），横屏或超矮屏时可见地图区会变小；手机浏览器不支持拖拽上传，使用顶部「上传 KML / KMZ」按钮；
 - Actions 首轮实跑暴露 ACR 对 buildx 默认 provenance 的兼容问题（`unknown manifest class for application/vnd.oci.empty.v1+json`），v1.0.10 已关闭 `provenance`/`sbom` 并实跑通过；后续若改动构建步骤，需保留这两项关闭；
 - 天地图乡村注记稀疏（17 级约 7/25 瓦片有内容，18 级仅零星 POI）；注记按原生层级显示、字号不放大，放大到 18 级后乡村地名会变少（数据限制）；tk 为个人「浏览器端」密钥，失效时仅注记缺失；
 - Qoder 内置浏览器窗口不可见时截图报 `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`，v1.0.4 起的页面截图改用本机 Chrome 无头 + CDP 完成；

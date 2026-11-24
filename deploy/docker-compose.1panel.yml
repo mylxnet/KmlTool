@@ -1,6 +1,6 @@
 services:
   kml-viewer:
-    image: registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.11
+    image: registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.12
     container_name: kml-viewer
     ports:
       # 左侧为宿主机端口，被占用时改成 8090 等；仅经 1Panel 反代可改为 "127.0.0.1:8080:80"

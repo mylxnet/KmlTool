@@ -4,7 +4,7 @@ set -eu
 REGISTRY="${REGISTRY:-registry.cn-hangzhou.aliyuncs.com}"
 NAMESPACE="${NAMESPACE:-your-namespace}"
 REPO="${REPO:-kml-viewer}"
-TAG="${TAG:-v1.0.11}"
+TAG="${TAG:-v1.0.12}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 

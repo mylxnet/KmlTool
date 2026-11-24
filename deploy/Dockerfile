@@ -2,7 +2,7 @@ FROM nginx:1.27-alpine
 
 LABEL org.opencontainers.image.title="kml-viewer" \
       org.opencontainers.image.description="KML 卫星图定位查询（纯静态）" \
-      org.opencontainers.image.version="1.0.11" \
+      org.opencontainers.image.version="1.0.12" \
       org.opencontainers.image.licenses="MIT"
 
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf

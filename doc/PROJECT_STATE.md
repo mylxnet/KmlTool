@@ -2,7 +2,7 @@
 
 ## 当前版本
 
-v1.0.11（2026-11-24）
+v1.0.12（2026-11-24）
 
 ## 已完成功能
 
@@ -28,6 +28,7 @@ v1.0.11（2026-11-24）
 - 编码兼容 UTF-8 / GB18030 / GBK
 - 详情：名称、类型、周长、面积、中心坐标、备注（HTML 净化）
 - 本地化第三方库，双击 index.html 即用
+- 手机端适配：≤768px 工具栏分两行，侧栏改为底部抽屉（42dvh）并加大触控区；首页标题自适应折行、信息卡限宽；触屏隐藏 +/- 与比例尺；选地块/加载文件时按抽屉高度上移可见中心
 - 测试样例与预期值脚本（test/make_samples.mjs）
 
 ## 踩过的坑
@@ -104,13 +105,13 @@ node scripts/serve.js            # 本地预览 http://127.0.0.1:8000
 node test/make_samples.mjs       # 重新生成测试样例与预期值
 
 # GitHub Actions（推荐）：打标签推送即自动构建并推 ACR
-git tag v1.0.11 && git push origin v1.0.11
+git tag v1.0.12 && git push origin v1.0.12
 
 # 或本地构建推送（需装有 Docker 的机器；命名空间、Registry 可用参数覆盖）
 powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Namespace <命名空间>
 powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Namespace <命名空间> -Username <阿里云账号全名>
 # 服务器
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.11 docker compose -f deploy/docker-compose.yml up -d
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.12 docker compose -f deploy/docker-compose.yml up -d
 ```
 
 无构建步骤；发布 = 拷贝 `index.html` + `static/`（+ 可选 doc/）。

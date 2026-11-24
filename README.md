@@ -4,7 +4,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Web-blue)](https://leafletjs.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Leaflet%201.9.4-green)](https://leafletjs.com/)
-[![Version](https://img.shields.io/badge/Version-v1.0.11-orange)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.0.12-orange)](CHANGELOG.md)
 [![Deploy](https://img.shields.io/badge/Deploy-静态托管-lightgrey)](doc/DEPLOY.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -61,6 +61,10 @@
 | 高德卫星图与选中态 |
 | --- |
 | ![高德底图与选中态](doc/images/shot_05_gaode_selected.png) |
+
+| 手机端首页 | 手机端加载与选中 |
+| --- | --- |
+| ![手机首页](doc/images/shot_14_mobile_home.png) | ![手机选中](doc/images/shot_16_mobile_selected.png) |
 
 ### 🚀 快速开始
 
