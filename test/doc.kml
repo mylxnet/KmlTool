@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>KMZ 内嵌数据</name>
+  <Placemark>
+    <name>上海三角地块</name>
+    <description>来自 sample.kmz 的 doc.kml</description>
+    <Polygon>
+      <outerBoundaryIs>
+        <LinearRing>
+          <coordinates>
+            121.450,31.220,0 121.500,31.220,0 121.475,31.260,0 121.450,31.220,0
+          </coordinates>
+        </LinearRing>
+      </outerBoundaryIs>
+    </Polygon>
+  </Placemark>
+  <Placemark>
+    <name>外滩点</name>
+    <Point><coordinates>121.490,31.240,0</coordinates></Point>
+  </Placemark>
+</Document>
+</kml>

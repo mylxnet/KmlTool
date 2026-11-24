@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>tiny</name>
+    <Placemark>
+      <name>微小地块</name>
+      <Polygon>
+        <outerBoundaryIs><LinearRing><coordinates>
+          116.397,39.9085,0
+          116.3975,39.9085,0
+          116.3975,39.909,0
+          116.397,39.909,0
+          116.397,39.9085,0
+        </coordinates></LinearRing></outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>

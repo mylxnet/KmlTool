@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>样例数据</name>
+  <Style id="red">
+    <LineStyle><color>ff0000e6</color><width>3</width></LineStyle>
+    <PolyStyle><color>550000e6</color></PolyStyle>
+  </Style>
+  <Style id="green">
+    <LineStyle><color>ff00a000</color><width>2</width></LineStyle>
+    <PolyStyle><color>5500a000</color></PolyStyle>
+  </Style>
+  <Placemark>
+    <name>地块A（矩形）</name>
+    <description>测试矩形地块，位于北京西北部</description>
+    <styleUrl>#red</styleUrl>
+    <Polygon>
+      <outerBoundaryIs>
+        <LinearRing>
+          <coordinates>
+            116.30,39.90,0 116.35,39.90,0 116.35,39.95,0 116.30,39.95,0 116.30,39.90,0
+          </coordinates>
+        </LinearRing>
+      </outerBoundaryIs>
+    </Polygon>
+  </Placemark>
+  <Placemark>
+    <name>天安门</name>
+    <description>中心点标记</description>
+    <Point><coordinates>116.397470,39.908724,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>长安街段</name>
+    <LineString><coordinates>116.370,39.907,0 116.425,39.908,0</coordinates></LineString>
+  </Placemark>
+  <Placemark>
+    <name>开发区</name>
+    <description><![CDATA[<div><b>开发区说明</b><table><tr><td>用地类型</td><td>工业</td></tr><tr><td>备注</td><td>含两个地块</td></tr></table><script>window.__xss1=1</script><img src="x" onerror="window.__xss2=1"></div>]]></description>
+    <styleUrl>#green</styleUrl>
+    <MultiGeometry>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              116.20,39.85,0 116.25,39.85,0 116.225,39.90,0 116.20,39.85,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              116.26,39.86,0 116.30,39.86,0 116.28,39.91,0 116.26,39.86,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </MultiGeometry>
+  </Placemark>
+</Document>
+</kml>

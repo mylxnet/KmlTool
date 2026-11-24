@@ -1,0 +1,7 @@
+.git
+doc
+test
+scripts
+*.md
+deploy/*.ps1
+deploy/*.sh

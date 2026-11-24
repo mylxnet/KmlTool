@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卫星图 KML 定位查询 v1.0.11</title>
+<link rel="stylesheet" href="static/libs/leaflet.css">
+<link rel="stylesheet" href="static/css/app.css">
+</head>
+<body>
+<div id="map"></div>
+
+<header id="toolbar">
+  <div class="brand">卫星图</div>
+  <button id="btn-upload" class="btn btn-primary" type="button">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0 5 5m-5-5-5 5M4 20h16"/></svg>
+    上传 KML / KMZ
+  </button>
+  <button id="btn-clear" class="btn btn-ghost" type="button" disabled>清空</button>
+  <span class="spacer"></span>
+  <select id="sel-basemap" class="sel" title="地图底图">
+    <option value="esri" selected>Esri 卫星图</option>
+    <option value="gaode">高德卫星图</option>
+    <option value="gaode-vec">高德普通地图</option>
+  </select>
+  <select id="sel-unit" class="sel" title="面积单位">
+    <option value="ha" selected>公顷</option>
+    <option value="mu">亩</option>
+    <option value="m2">平方米</option>
+    <option value="km2">平方公里</option>
+  </select>
+  <select id="sel-labels" class="sel" title="地名注记来源（天地图注记仅用于 Esri 卫星图）">
+    <option value="tdt">天地图注记</option>
+    <option value="esri">Esri 注记</option>
+    <option value="off">不显示注记</option>
+  </select>
+</header>
+
+<aside id="sidebar" class="hidden">
+  <div class="side-head">
+    <span id="stat-line">0 个地块</span>
+  </div>
+  <div class="side-filter">
+    <input type="search" id="filter-input" placeholder="筛选地块（名称 / 备注 / 面积 / 坐标…）" autocomplete="off">
+  </div>
+  <div id="file-list"></div>
+</aside>
+
+<div id="dropzone">
+  <div class="dz-inner">
+    <div class="hero-title">卫星图 KML 定位查询</div>
+    <div class="hero-sub">把 KML / KMZ 文件拖入页面，或点击顶部「上传 KML / KMZ」</div>
+    <div class="hero-sign">v1.0.11 by Mr lin</div>
+  </div>
+</div>
+
+<div id="drag-overlay"><span>松开以加载文件</span></div>
+<div id="loading" class="hidden"><div class="spinner"></div><span id="loading-text">正在解析…</span></div>
+<div id="toast"></div>
+<div id="credit">v1.0.11 by Mr lin</div>
+
+<input type="file" id="file-input" accept=".kml,.kmz" multiple hidden>
+
+<script src="config.js"></script>
+<script src="static/libs/leaflet.js"></script>
+<script src="static/libs/jszip.min.js"></script>
+<script src="static/libs/togeojson.umd.js"></script>
+<script src="static/libs/turf.min.js"></script>
+<script src="static/js/app.js"></script>
+</body>
+</html>
