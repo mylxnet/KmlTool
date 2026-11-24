@@ -22,7 +22,7 @@ v1.0.11（2026-11-24）
 - 首页半透明主题面板「卫星图 KML 定位查询」+ 署名，无选择文件按钮（工具条上传或拖拽）；标题默认通用，`config.js` 的 `siteName` 可前置自用站点名
 - 清空复位：移除全部图层后地图平滑飞回初始全球视野（`HOME_VIEW` `[34,108]` 4 级），首页主题面板重现；底图/注记/单位偏好保留
 - Docker / ACR 部署：`deploy/Dockerfile`（nginx:1.27-alpine）+ `nginx.conf` + `docker-compose.yml` + 构建/推送脚本（PowerShell / sh），部署手册见 `doc/DEPLOY.md` 方式四
-- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.11 仓库重建后实跑成功 run 45405215908，关闭 provenance/sbom 以兼容 ACR）
+- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.11 仓库重建后实跑成功 run 45405215908 attempt 2，ACR 仅保留 v1.0.11/latest，关闭 provenance/sbom 以兼容 ACR）
 - tk 外置：源码不含天地图 tk，本地 `config.js`（不入库）提供，新增 `config.example.js` 模板
 - 面积单位切换（平方米/公顷/亩/平方公里）并记忆，顶栏下拉
 - 编码兼容 UTF-8 / GB18030 / GBK
@@ -59,6 +59,7 @@ v1.0.11（2026-11-24）
 | 23 | 自动化断言「点击后中心误差 0.047°」 | 隐藏标签页 rAF 被暂停，`flyTo` 动画不推进，读取到的是中途坐标 | 交互/动画类断言改在无头 Chrome（可见渲染）中跑，误差 0（行点击）/ 4e-5°（地图点击，popup 自动避让后微调） | 页面不可见时动画不会按时间推进，不能以 hidden 页结果判断动画逻辑 |
 | 24 | `DELETE /repos/mylxnet/KmlTool` 返回 403 | classic PAT 仅有 `repo, workflow, write:packages`，删除仓库需要 `delete_repo` scope，管理员权限不能替代 | 改由仓库所有者在网页 Settings → Danger Zone 删除，再同名重建 | 涉及删除的自动化先核对 token scopes，不要假设 admin 权限足够 |
 | 25 | 重建仓库的 `POST /user/repos` 返回 400「Problems parsing JSON」 | Git Bash 下 `curl -d` 携带中文描述时请求体被转写损坏 | 用 UTF-8 JSON 文件配合 `--data-binary @file`，或改用纯 ASCII 描述 | 含非 ASCII 的 JSON 一律走文件体，避免命令行编码问题 |
+| 26 | ACR registry 接口无法删除仓库或 manifest | 个人版 ACR 的 token 只授予 `pull`，`DELETE .../manifests/<digest>` 返回 401，`DELETE /v2/<repo>/` 返回 404 | 在 ACR 控制台删除仓库；随后重跑原 tag 的 Actions run，推送时自动重建仓库与标签 | 仓库级删除属 ACR 控制面能力，不能依赖 Docker Registry v2 接口 |
 
 ## 架构决策
 

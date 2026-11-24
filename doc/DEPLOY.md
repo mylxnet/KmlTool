@@ -65,6 +65,8 @@ server {
 
 3. Actions 完成后，ACR 中出现 `v1.0.11` 与 `latest`（v1.0.11 已实跑验证：run 45405215908，命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
 
+需要彻底重建镜像时，在 ACR 控制台删除仓库后重跑对应 tag 的 Actions run 即可（个人版 registry 接口不支持仓库级删除）；重跑只会产出该 tag 与 `latest`。
+
 仓库本身不含 tk：工作流用 Secret 生成 `config.js` 后再打包；本地构建则使用项目根目录的 `config.js`。
 
 #### 方式 B：本地构建（需装有 Docker 的机器，项目根目录执行）

@@ -90,7 +90,8 @@
 | 75 | GitHub Actions 工作流静态核对（v1.0.9） | 触发条件、Secret 引用、构建路径正确 | 静态核对 `.github/workflows/acr.yml`：`v*` 标签与 workflow_dispatch 触发；用 `secrets.TIANDITU_TK` 生成 `config.js`；镜像名来自 `secrets.ACR_REGISTRY/ACR_NAMESPACE`；`build-push-action` context `.`、file `deploy/Dockerfile`、push=true、标签为 tag + latest。首轮实跑（run #1/#2）因未配 Secrets、ACR 拒绝 buildx 默认 provenance 而失败，v1.0.10 已关闭 `provenance`/`sbom` 修复 | 静态通过 |
 | 76 | GitHub Actions 实跑推 ACR（v1.0.10） | workflow 成功构建并推送镜像，镜像内含注入的 config.js | 推送 tag v1.0.10 触发 run 45402313832，结论 success；ACR `mylxnet/kml-viewer` 由首次推送自动创建，标签为 `latest`、`v1.0.10`；manifest 为 OCI image manifest（非 index，provenance 已关闭）；下载镜像层核对：`/usr/share/nginx/html/config.js` 含 `window.KML_CONFIG`、tk 长度 32 且与本地 `config.js` 一致；`index.html` 标题与署名均为 v1.0.10（该旧仓库运行记录已随 v1.0.11 仓库重建移除） | 通过 |
 | 77 | 站点名脱敏与 siteName（v1.0.11） | 无配置时标题通用；配置 siteName 后前缀生效；文档截图不含地域名 | 无头 Chrome 1440×900：无 `siteName` 时 title「卫星图 KML 定位查询 v1.0.11」、brand「卫星图」、hero「卫星图 KML 定位查询」；临时写入 `siteName:'示例镇'` 后 title「示例镇卫星图 KML 定位查询 v1.0.11」、brand「示例镇卫星图」、hero「示例镇卫星图 KML 定位查询」；7 张文档截图均改用 `sample.kml`/`sample.kmz` 通用样例，顶栏与信息卡无地域名，`Runtime.exceptionThrown` 0 条 | 通过 |
-| 78 | 重建仓库后 Actions 实跑（v1.0.11） | 新仓库为空时推送 main + tag，workflow 成功并产出 v1.0.11/latest | 2026-11-24 旧仓库删除后同名重建，写入 5 个 Secrets；推送 tag v1.0.11（commit 204ec8f）触发 run 45405215908，结论 success；ACR 标签列表为 `latest, v1.0.10, v1.0.11`，`v1.0.11` 与 `latest` 的 OCI manifest 均返回 200；旧 v1.0.10 镜像按要求保留未动 | 通过 |
+| 78 | 重建仓库后 Actions 实跑（v1.0.11） | 新仓库为空时推送 main + tag，workflow 成功并产出 v1.0.11/latest | 2026-11-24 旧仓库删除后同名重建，写入 5 个 Secrets；推送 tag v1.0.11（commit 204ec8f）触发 run 45405215908，结论 success | 通过 |
+| 79 | ACR 镜像重建与脱敏核验（v1.0.11） | 删除旧 ACR 仓库后重跑，镜像只剩脱敏版本且层内无地名 | registry 接口不支持整仓删除（DELETE 返回 401/404，仅授予 pull），由用户在 ACR 控制台删除 `mylxnet/kml-viewer`；重跑 run 45405215908（attempt 2）结论 success，ACR 自动重建仓库，标签列表仅 `latest`、`v1.0.11`，两者 manifest 均 200；逐层解压扫描：`v1.0.10` 曾有两层含真实站点名，重建后两层均 `siteName=false` 且版本为 v1.0.11 | 通过 |
 
 ## 数值核对方式
 
