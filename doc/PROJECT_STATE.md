@@ -2,7 +2,7 @@
 
 ## 当前版本
 
-v1.0.16（2026-11-25）
+v1.0.16（2026-11-25），已发布：commit `4ef7ee5` → main，annotated tag v1.0.16，Actions run 45615388535 成功，ACR 产出 `v1.0.16` + `latest`（digest `sha256:ed01e300…`）
 
 ## 已完成功能
 
@@ -24,7 +24,7 @@ v1.0.16（2026-11-25）
 - 首页半透明主题面板「卫星图 KML 定位查询」+ 署名，无选择文件按钮（工具条上传或拖拽）；标题默认通用，`config.js` 的 `siteName` 可前置自用站点名
 - 清空复位：移除全部图层后地图平滑飞回初始全球视野（`HOME_VIEW` `[34,108]` 4 级），首页主题面板重现；底图/注记/单位偏好保留
 - Docker / ACR 部署：`deploy/Dockerfile`（nginx:1.27-alpine）+ `nginx.conf` + `docker-compose.yml` + 构建/推送脚本（PowerShell / sh），部署手册见 `doc/DEPLOY.md` 方式四
-- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.15 实跑成功 run 45606055300，digest `sha256:57b0bc3c…`（v1.0.14 为 run 45591544304、digest `sha256:a8d80047…`），ACR 现有 v1.0.11、v1.0.12、v1.0.14、v1.0.15、latest，关闭 provenance/sbom 以兼容 ACR）
+- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.16 实跑成功 run 45615388535，digest `sha256:ed01e300…`（v1.0.15 为 run 45606055300、digest `sha256:57b0bc3c…`；v1.0.14 为 run 45591544304、digest `sha256:a8d80047…`），ACR 现有 v1.0.11、v1.0.12、v1.0.14、v1.0.15、v1.0.16、latest，关闭 provenance/sbom 以兼容 ACR）
 - tk 外置：源码不含天地图 tk，本地 `config.js`（不入库）提供，新增 `config.example.js` 模板
 - 面积单位切换（平方米/公顷/亩/平方公里）并记忆，顶栏下拉
 - 编码兼容 UTF-8 / GB18030 / GBK
@@ -95,7 +95,7 @@ v1.0.16（2026-11-25）
 - 面周长只计外边界（不含内部洞）；跨 180° 经线的要素显示会异常；
 - GroundOverlay（贴地图片）、gx:Track（轨迹回放）等冷门 KML 元素不渲染；
 - 超大文件（>100MB）解析较慢（加载层有提示）；
-- Docker 镜像构建与推送已由 GitHub Actions 实跑验证（v1.0.15，run 45606055300，ACR 命名空间 `mylxnet`）；开发机未安装 Docker，容器运行与 nginx 配置仍仅静态核对；
+- Docker 镜像构建与推送已由 GitHub Actions 实跑验证（v1.0.16，run 45615388535，ACR 命名空间 `mylxnet`）；开发机未安装 Docker，容器运行与 nginx 配置仍仅静态核对；
 - 阿里云 ACR 不接受 buildx 默认 provenance 证明清单，工作流已显式关闭 `provenance`/`sbom`，后续修改构建步骤需保留；
 - Firefox 无 GBK TextDecoder，GBK 文件会回退报错或乱码（建议 Edge/Chrome）。
 

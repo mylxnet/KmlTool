@@ -63,7 +63,7 @@ server {
    git push origin v1.0.16
    ```
 
-3. Actions 完成后，ACR 中出现 `v1.0.16` 与 `latest`（v1.0.15 为 run 45606055300、digest `sha256:57b0bc3c…`；v1.0.14 为 run 45591544304、digest `sha256:a8d80047…`；v1.0.12 为 run 45415825844、digest `sha256:08f2b67…`，命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
+3. Actions 完成后，ACR 中出现 `v1.0.16` 与 `latest`（v1.0.16 为 run 45615388535、digest `sha256:ed01e300…`；v1.0.15 为 run 45606055300、digest `sha256:57b0bc3c…`；v1.0.14 为 run 45591544304、digest `sha256:a8d80047…`；v1.0.12 为 run 45415825844、digest `sha256:08f2b67…`，命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
 
 需要彻底重建镜像时，在 ACR 控制台删除仓库后重跑对应 tag 的 Actions run 即可（个人版 registry 接口不支持仓库级删除）；重跑只会产出该 tag 与 `latest`。
 
