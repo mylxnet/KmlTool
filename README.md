@@ -4,7 +4,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Web-blue)](https://leafletjs.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Leaflet%201.9.4-green)](https://leafletjs.com/)
-[![Version](https://img.shields.io/badge/Version-v1.0.14-orange)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.0.15-orange)](CHANGELOG.md)
 [![Deploy](https://img.shields.io/badge/Deploy-静态托管-lightgrey)](doc/DEPLOY.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -21,7 +21,7 @@
 - 左侧每个地块前有**勾选框**：勾选显示在地图、取消勾选隐藏；顶部**筛选框**可按名称、备注、面积、坐标等任意信息过滤，地图同步只显示匹配要素；
 - 鼠标点击任意要素即**选中并立即弹出信息卡**（参照谷歌地图）：地块自动居中到屏幕中央；选中区域同色加深、无白边；再点一次、点地图空白处、按 Esc 或点 × 即可取消；
 - 左侧列表只列**地块**（面要素，含首尾闭合的线），双击即可定位；悬停仅做高亮，不弹任何提示；
-- 支持隐藏、删除、单位切换、**注记来源切换**（天地图注记 / Esri 注记 / 不显示）。
+- 侧栏支持**全局全选 / 全不选**、单位切换、**注记来源切换**（天地图注记 / Esri 注记 / 不显示），并可将当前地块**导出 CSV**（Excel 可直接打开）。
 
 ### 🎯 核心特性
 
@@ -34,6 +34,8 @@
 | 腾讯卫星图 | 腾讯 `sateTiles` 影像 + 腾讯透明注记，18 级封顶；无需密钥，GCJ-02 自动纠偏；影像仅覆盖中国境内 |
 | 坐标系自动纠偏 | 高德 / 腾讯瓦片为 GCJ-02 火星坐标，要素渲染时自动从 WGS84 偏移转换，切回 Esri / 天地图自动还原 |
 | 勾选显隐 | 每个地块前有勾选框，勾选即显示、取消即隐藏，默认全部勾选；显示状态跨底图切换保持 |
+| 全局全选 | 侧栏统计行「全选」复选框支持三态（全选 / 半选 / 全不选），一键切换当前列表全部地块；筛选时可批量调整勾选状态 |
+| CSV 导出 | 「导出 CSV」导出当前可显示地块（筛选时=匹配行，否则=勾选行）；包含文件名、名称、类型、周长、面积、中心经纬度、备注；UTF-8 BOM + 全字段引号，Excel 打开不乱码 |
 | 全字段筛选 | 侧栏筛选框输入任意关键字（名称 / 备注 / 类型 / 文件名 / 周长 / 面积 / 中心坐标），匹配的地块列入列表并在图上显示（含点、线）；清空后恢复勾选状态 |
 | 面积 / 周长 | 按地球椭球面（WGS84）精确计算，面积单位可在平方米 / 公顷 / 亩 / 平方公里间切换 |
 | 点击选中 | 点击要素或侧栏条目即选中并立即弹出信息卡；面（地块）自动平滑平移到屏幕中央（缩放不变，点/线不移动）；选中区域同色加深（面=深色半透明叠层、线=加粗、点=加深圆点），无白色描边；再点同一要素、点空白处、按 Esc 或点 × 取消 |
@@ -68,6 +70,10 @@
 | --- | --- |
 | ![天地图卫星图](doc/images/shot_17_tdt_satellite.png) | ![腾讯卫星图](doc/images/shot_18_qq_satellite.png) |
 
+| 全选 / 导出 CSV |
+| --- |
+| ![全选与 CSV 导出](doc/images/shot_19_csv_sidebar.png) |
+
 | 手机端首页 | 手机端加载与选中 |
 | --- | --- |
 | ![手机首页](doc/images/shot_14_mobile_home.png) | ![手机选中](doc/images/shot_16_mobile_selected.png) |
@@ -78,7 +84,8 @@
 
 1. 双击打开 `index.html`（推荐用 Edge 或 Chrome）；
 2. 点击「上传 KML / KMZ」或直接把文件拖进页面；
-3. 点击要素或左侧条目选中并查看信息卡；双击左侧条目定位；再次点击 / 点空白 / Esc / × 取消选中。
+3. 点击要素或左侧条目选中并查看信息卡；双击左侧条目定位；再次点击 / 点空白 / Esc / × 取消选中；
+4. 需要表格留档时，点侧栏「导出 CSV」保存当前地块（筛选时导出匹配行，否则导出勾选行）。
 
 **开发者（本地预览）**
 
@@ -153,12 +160,12 @@ kml/
 | 选中要素 | 点击即选中：面（地块）自动平移到屏幕中央、区域同色加深、侧栏行高亮、信息卡立即出现；点、线选中不移动地图 |
 | 取消选中 | 再点同一要素 / 点地图空白处 / 按 Esc / 点信息卡 ×，四种方式任选 |
 | 显示 / 隐藏某个地块 | 勾选 / 取消勾选该地块行前的复选框（默认全部勾选） |
+| 全部显示 / 全部隐藏 | 点统计行左侧「全选」复选框：全不选时点击全选、全选时点击全不选、半选时点击全选 |
+| 导出地块 | 点统计行右侧「导出 CSV」，导出当前可显示地块；无地块时按钮为禁用态 |
 | 筛选地块 | 在侧栏筛选框输入关键字，匹配名称、备注、类型、文件名、周长、面积、中心坐标等全部信息，地图同步只显示匹配要素；清空恢复勾选状态 |
 | 定位要素 | 双击左侧条目，飞至要素位置 |
 | 切换底图 | 顶栏右侧下拉框：Esri 卫星图（默认）/ 天地图卫星图 / 高德卫星图 / 高德普通地图 / 腾讯卫星图（选择会被记住） |
 | 切换面积单位 | 顶栏右侧单位下拉框（选择会被记住） |
-| 隐藏某个文件 | 点击文件标题右侧的眼睛图标 |
-| 移除某个文件 | 点击文件标题右侧的垃圾桶图标 |
 | 显示/隐藏地名 | 顶栏右侧「注记来源」下拉：天地图注记（默认）/ Esri 注记 / 不显示（选择会被记住） |
 | 清空全部 | 顶栏「清空」按钮：移除全部图层并平滑飞回初始视野，上传首页面板恢复 |
 
@@ -196,7 +203,7 @@ kml/
 
 ### What is this
 
-A zero-dependency static web page. Drag & drop KML/KMZ files onto an Esri, Tianditu, Amap, or Tencent map (satellite or plain vector); check/uncheck plots to show or hide them, filter plots by any field, and click to select a feature Google-style (same-color darkening; the info card opens immediately). Click again / click empty space / press Esc / click × to deselect. Closed lines (first point = last point) are treated as plots automatically. Tianditu Chinese labels (township / village / POI) can be overlaid on the Esri imagery without offset. Clicking "Clear" removes all layers and smoothly flies back to the initial world view, keeping your basemap / label / unit preferences.
+A zero-dependency static web page. Drag & drop KML/KMZ files onto an Esri, Tianditu, Amap, or Tencent map (satellite or plain vector); check/uncheck plots to show or hide them, select or deselect all listed plots, filter plots by any field, export the current plots to CSV (UTF-8 BOM, Excel-friendly), and click to select a feature Google-style (same-color darkening; the info card opens immediately). Click again / click empty space / press Esc / click × to deselect. Closed lines (first point = last point) are treated as plots automatically. Tianditu Chinese labels (township / village / POI) can be overlaid on the Esri imagery without offset. Clicking "Clear" removes all layers and smoothly flies back to the initial world view, keeping your basemap / label / unit preferences.
 
 ### Tech Stack
 

@@ -2,7 +2,7 @@
 
 ## 1. 概述
 
-KML 卫星地图查看器：纯前端静态网页，本地解析 KML/KMZ 并叠加到 Esri / 天地图 / 高德 / 腾讯卫星影像或高德普通地图，勾选 / 筛选控制地块显示，点击要素选中后立即查看名称、周长、面积等信息；首尾闭合的线自动按地块处理。Esri 卫星图可叠加天地图中文注记（镇、村、社名与主要地名），天地图卫星图自带影像注记。清空后地图平滑飞回初始全球视野。提供 Docker / 阿里云 ACR 镜像部署。站点名称默认通用，可通过 `config.js` 的 `siteName` 自定义。版本 v1.0.14。
+KML 卫星地图查看器：纯前端静态网页，本地解析 KML/KMZ 并叠加到 Esri / 天地图 / 高德 / 腾讯卫星影像或高德普通地图，勾选 / 全选 / 筛选控制地块显示，可导出当前地块 CSV，点击要素选中后立即查看名称、周长、面积等信息；首尾闭合的线自动按地块处理。Esri 卫星图可叠加天地图中文注记（镇、村、社名与主要地名），天地图卫星图自带影像注记。清空后地图平滑飞回初始全球视野。提供 Docker / 阿里云 ACR 镜像部署。站点名称默认通用，可通过 `config.js` 的 `siteName` 自定义。版本 v1.0.15。
 
 ## 2. 运行环境
 
@@ -22,10 +22,11 @@ KML 卫星地图查看器：纯前端静态网页，本地解析 KML/KMZ 并叠�
 | 工具函数 | 数值格式化（中文千分位）、长度/面积/坐标格式化、toast、加载层、HTML 净化（剥离危险标签/事件属性/表现属性）、`stripHtml` |
 | 解析链 | `decodeKml`（编码识别）→ `parseKml`（DOMParser + toGeoJSON）→ `unzipKmz`（JSZip） |
 | 记录建模 | `buildRecords`（几何拆分、样式、turf 计算、默认勾选、纯文本备注）、`closedRingOf`（闭合线转面）、`ringLengthM`（周长口径）、`centroidOf`（中心点） |
-| 显示规则 | `matchesFilter`（全字段子串匹配）、`recVisible`（文件显隐 × 勾选/筛选）、`applyVisibility`（统一增删图层） |
+| 显示规则 | `matchesFilter`（全字段子串匹配）、`recVisible`（勾选/筛选）、`applyVisibility`（统一增删图层）、`applyAllChecked`（全局全选） |
 | 渲染 | `createFeatureLayer`（L.geoJSON 图层 + 信息卡，移除点击自动弹卡、点击选中即弹卡）、`rerenderFeatures`（切底图重建并恢复选中/信息卡）、`highlight`、`flyToFeature`（带 maxZoom 封顶）、`detailContent` |
 | 选中状态机 | `setSelected`（同色加深覆盖层 + 行高亮，不隐藏其他要素）、`clearSelected`（移除覆盖层、关信息卡）、`ensureHalo` + `darkenHex`（同色压暗覆盖层） |
-| 侧栏 | `renderSidebar`（只列面要素，含闭合线：文件分组、筛选后地块行、勾选框、统计、显隐/移除） |
+| 侧栏 | `renderSidebar`（只列面要素，含闭合线：文件分组、筛选后地块行、勾选框、统计、全选框三态）、`sidebarFaces`（当前列表地块）、`syncSideActions`（全选与导出按钮状态） |
+| CSV 导出 | `buildCsv`（BOM/CRLF/引号转义/公式注入防护）、`exportCsv`（Blob 下载，导出 `recVisible` 面要素） |
 | 文件加载 | `handleFiles` / `loadFile`（读文件、解析、入组、定位） |
 | 事件绑定 | 上传按钮、清空、筛选输入、单位切换、底图切换、注记来源下拉、地图空白点击与 Esc 取消选中、拖拽上传（dragenter/over/leave/drop 计数器防闪烁） |
 
@@ -33,7 +34,7 @@ KML 卫星地图查看器：纯前端静态网页，本地解析 KML/KMZ 并叠�
 
 ```js
 // 文件记录
-{ id, name, group: L.featureGroup, features: [record], visible }
+{ id, name, group: L.featureGroup, features: [record] }
 
 // 要素记录
 {
@@ -81,12 +82,22 @@ togeojson 会把 KML `<Style>`（aabbggrr 颜色、透明度）转成属性 `str
 - 面积单位切换只 `setPopupContent()` 原地刷新（打开状态 Leaflet 即时重排），不关卡重开，避免 popupclose 误清选中；
 - 清空 → `state.files.forEach(map.removeLayer)`、取消选中、清筛选框后 `flyTo(HOME_VIEW.center, HOME_VIEW.zoom, 0.8s)` 平滑飞回初始全球视野，空状态主题面板重现；底图 / 注记来源 / 面积单位偏好不重置。
 
-### 5.4 显示规则（勾选 + 筛选）
+### 5.4 显示规则（勾选 + 全选 + 筛选）
 
-- `recVisible(rec) = fileRec.visible && (state.filter ? matchesFilter(rec) : rec.checked)`；
+- `recVisible(rec) = state.filter ? matchesFilter(rec) : rec.checked`；
 - `matchesFilter` 把名称、`plainDesc`、类型、文件名、格式化周长/面积/中心坐标及原始数值拼接为小写串做子串匹配；
-- `applyVisibility()` 每次全量遍历：文件隐藏则整组移除，否则组入图后逐要素按 `recVisible` 增删；末尾若选中要素已不在图上则 `clearSelected()`；
-- 筛选激活时侧栏只列命中地块，统计显示「匹配 N 个地块」；筛选临时覆盖勾选，清空后恢复。
+- `applyVisibility()` 每次全量遍历：文件组入图后逐要素按可见规则增删；末尾若选中要素已不在图上则 `clearSelected()`；
+- 筛选激活时侧栏只列命中地块，统计显示「匹配 N 个地块」；筛选临时覆盖勾选，清空后恢复；
+- 全局全选框只作用于 `sidebarFaces()`（当前列表），三态由已勾选行数决定；筛选时点击仅更新 `rec.checked`，地图与导出仍按筛选结果。
+
+### 5.10 CSV 导出
+
+- 范围：`exportableFaces()` 即 `sidebarFaces().filter(recVisible)`；筛选激活时导出全部匹配行，否则导出已勾选行；
+- 列：文件名、名称、类型、周长(米)、面积(平方米)、面积(当前单位)、面积单位、中心经度、中心纬度、备注；
+- 数值口径：面积与周长 2 位小数；面积(当前单位)按 1 亩 = 666.6667 m²、1 公顷 = 1e4 m²、1 km² = 1e6 m² 换算；中心坐标为 WGS84 原始值的经度/纬度，6 位小数；
+- 文件格式：`\ufeff` BOM + CRLF，所有字段加双引号并转义内部引号；备注空白压成单空格；
+- 安全：文本字段以 `= + - @` 开头时前置 `'`，避免 Excel 公式注入；下载用 Blob + 临时 `<a download>`，不发起网络请求；
+- 文件名 `kml_plots_YYYYMMDD_HHmm.csv`（本地时间）；无可导出地块时按钮禁用。
 
 ### 5.5 周长口径
 
@@ -140,7 +151,7 @@ Docker / ACR：
 
 - 注释与文档一律中文；无第三方构建链；
 - 用户数据入 DOM 一律 `textContent`，唯一 innerHTML 入口经过 `sanitizeHtml`；
-- 常量集中（调色板、SVG 图标、数字格式器、瓦片 URL、缩放上限）。
+- 常量集中（调色板、数字格式器、瓦片 URL、缩放上限、单位换算）。
 
 ## 8. 测试
 

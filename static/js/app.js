@@ -30,7 +30,7 @@ const PALETTE = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1
 
 /* ================= 全局状态 ================= */
 const state = {
-  files: new Map(), // id -> { id, name, group, features: [], visible }
+  files: new Map(), // id -> { id, name, group, features: [] }
   nextId: 1,
   unit: localStorage.getItem('kmlUnit') || 'ha',
   basemap: localStorage.getItem('kmlBasemap') || 'esri', // esri | tdt | gaode | gaode-vec | qq
@@ -610,7 +610,7 @@ function detailContent(rec) {
   return el;
 }
 
-/* ================= 显示规则：勾选框 + 筛选 + 文件显隐 ================= */
+/* ================= 显示规则：勾选框 + 筛选 ================= */
 
 /* 筛选匹配：名称、备注、类型、文件名、周长、面积、中心坐标（含原始数值） */
 function matchesFilter(rec) {
@@ -627,19 +627,14 @@ function matchesFilter(rec) {
   return hay.indexOf(state.filter) >= 0;
 }
 
-/* 单个要素是否应显示：文件可见 && (筛选时按匹配，否则按勾选) */
+/* 单个要素是否应显示：筛选时按匹配，否则按勾选 */
 function recVisible(rec) {
-  const f = state.files.get(rec.fileId);
-  if (!f || !f.visible) return false;
+  if (!state.files.has(rec.fileId)) return false;
   return state.filter ? matchesFilter(rec) : rec.checked;
 }
 
 function applyVisibility() {
   state.files.forEach(f => {
-    if (!f.visible) {
-      if (map.hasLayer(f.group)) map.removeLayer(f.group);
-      return;
-    }
     f.group.addTo(map);
     f.features.forEach(rec => {
       if (!rec.layer) return;
@@ -678,17 +673,34 @@ function rerenderFeatures() {
 }
 
 /* ================= 侧栏（只列地块） ================= */
-const ICON_EYE = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
-const ICON_EYE_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2"/></svg>';
-const ICON_TRASH = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14"/></svg>';
+/* 侧栏当前列表中的地块：所有文件的面，筛选时只留匹配行 */
+function sidebarFaces() {
+  const out = [];
+  state.files.forEach(f => {
+    f.features.forEach(rec => {
+      if (rec.type !== '面') return;
+      if (state.filter && !matchesFilter(rec)) return;
+      out.push(rec);
+    });
+  });
+  return out;
+}
 
-function iconBtn(html, title) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'icon-btn';
-  b.innerHTML = html;
-  b.title = title;
-  return b;
+function applyAllChecked(on) {
+  sidebarFaces().forEach(rec => { rec.checked = on; });
+  applyVisibility();
+  renderSidebar();
+}
+
+/* 全选框三态与导出按钮可用状态，跟随当前列表 */
+function syncSideActions() {
+  const faces = sidebarFaces();
+  const n = faces.filter(rec => rec.checked).length;
+  const all = $('check-all');
+  all.disabled = faces.length === 0;
+  all.checked = faces.length > 0 && n === faces.length;
+  all.indeterminate = n > 0 && n < faces.length;
+  $('btn-export-csv').disabled = !faces.some(recVisible);
 }
 
 function renderSidebar() {
@@ -708,16 +720,7 @@ function renderSidebar() {
     title.className = 'file-title';
     title.textContent = `${fileRec.name}（${faces.length}）`;
     title.title = fileRec.name;
-    const eye = iconBtn(fileRec.visible ? ICON_EYE : ICON_EYE_OFF, fileRec.visible ? '隐藏该文件' : '显示该文件');
-    eye.classList.toggle('off', !fileRec.visible);
-    eye.addEventListener('click', () => {
-      fileRec.visible = !fileRec.visible;
-      applyVisibility();
-      renderSidebar();
-    });
-    const del = iconBtn(ICON_TRASH, '移除该文件');
-    del.addEventListener('click', () => removeFile(fileRec));
-    head.append(title, eye, del);
+    head.appendChild(title);
     box.appendChild(head);
 
     faces.forEach(rec => {
@@ -733,6 +736,7 @@ function renderSidebar() {
       cb.addEventListener('change', () => {
         rec.checked = cb.checked;
         applyVisibility();
+        syncSideActions();
       });
       const sw = document.createElement('span');
       sw.className = 'feat-swatch';
@@ -765,6 +769,7 @@ function renderSidebar() {
     ? `匹配 ${total} 个地块`
     : (total ? `${total} 个地块` : '0 个地块');
   updateEmptyState();
+  syncSideActions();
 }
 
 function updateEmptyState() {
@@ -775,12 +780,71 @@ function updateEmptyState() {
   $('btn-clear').disabled = empty;
 }
 
-function removeFile(fileRec) {
-  if (state.selected && state.selected.fileId === fileRec.id) clearSelected();
-  map.removeLayer(fileRec.group);
-  state.files.delete(fileRec.id);
-  renderSidebar();
-  applyVisibility();
+
+/* ================= CSV 导出（当前可显示地块：筛选优先，否则按勾选） ================= */
+const UNIT_LABEL = { ha: '公顷', mu: '亩', m2: '平方米', km2: '平方公里' };
+
+function csvCell(v) {
+  let s = v == null ? '' : String(v);
+  s = s.replace(/\s+/g, ' ').trim();
+  if (/^[=+\-@]/.test(s)) s = "'" + s; // 防 Excel 公式注入
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function csvNum(v, digits) {
+  return v == null || !isFinite(v) ? '""' : '"' + Number(v).toFixed(digits) + '"';
+}
+
+function exportableFaces() {
+  return sidebarFaces().filter(recVisible);
+}
+
+function buildCsv() {
+  const unitName = UNIT_LABEL[state.unit] || UNIT_LABEL.ha;
+  const div = state.unit === 'mu' ? 666.6667
+    : state.unit === 'm2' ? 1
+    : state.unit === 'km2' ? 1e6
+    : 1e4;
+  const lines = [[
+    '文件名', '名称', '类型', '周长(米)', '面积(平方米)', '面积(当前单位)',
+    '面积单位', '中心经度', '中心纬度', '备注'
+  ].map(csvCell).join(',')];
+  state.files.forEach(f => {
+    f.features.forEach(rec => {
+      if (rec.type !== '面' || !recVisible(rec)) return;
+      const c = rec.centroid;
+      lines.push([
+        csvCell(f.name), csvCell(rec.name), csvCell(rec.type),
+        csvNum(rec.perimeterM, 2),
+        csvNum(rec.areaM2, 2),
+        csvNum(rec.areaM2 == null ? null : rec.areaM2 / div, 2),
+        csvCell(unitName),
+        csvNum(c ? c[0] : null, 6),
+        csvNum(c ? c[1] : null, 6),
+        csvCell(rec.plainDesc)
+      ].join(','));
+    });
+  });
+  return '\ufeff' + lines.join('\r\n') + '\r\n';
+}
+
+function exportCsv() {
+  const n = exportableFaces().length;
+  if (!n) { toast('没有可导出的地块', true); return; }
+  const d = new Date();
+  const p = v => String(v).padStart(2, '0');
+  const name = 'kml_plots_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
+    '_' + p(d.getHours()) + p(d.getMinutes()) + '.csv';
+  const blob = new Blob([buildCsv()], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`已导出 ${n} 个地块`);
 }
 
 /* ================= 文件加载 ================= */
@@ -819,8 +883,7 @@ async function loadFile(file) {
     id: state.nextId++,
     name: file.name,
     group: L.featureGroup(),
-    features: buildRecords(fc, state.files.size),
-    visible: true
+    features: buildRecords(fc, state.files.size)
   };
   if (!fileRec.features.length) {
     toast(`「${file.name}」没有可显示的地理要素`, true);
@@ -897,6 +960,10 @@ filterInput.addEventListener('input', () => {
   applyVisibility();
 });
 
+const checkAll = $('check-all');
+checkAll.addEventListener('change', () => applyAllChecked(checkAll.checked));
+$('btn-export-csv').addEventListener('click', exportCsv);
+
 /* 取消选中：点地图空白处或按 Esc */
 map.on('click', () => clearSelected());
 document.addEventListener('keydown', e => { if (e.key === 'Escape') clearSelected(); });
@@ -947,4 +1014,4 @@ applyTiles();
 renderSidebar();
 
 /* 浏览器自动化测试钩子 */
-window.__kml = { state, map, applyTiles, rerenderFeatures, setSelected, clearSelected, applyVisibility, matchesFilter, flyToFeature, displayGeom, wgs84ToGcj02 };
+window.__kml = { state, map, applyTiles, rerenderFeatures, setSelected, clearSelected, applyVisibility, matchesFilter, flyToFeature, displayGeom, wgs84ToGcj02, sidebarFaces, applyAllChecked, buildCsv, exportCsv };

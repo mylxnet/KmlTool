@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卫星图 KML 定位查询 v1.0.14</title>
+<title>卫星图 KML 定位查询 v1.0.15</title>
 <link rel="stylesheet" href="static/libs/leaflet.css">
 <link rel="stylesheet" href="static/css/app.css">
 </head>
@@ -42,7 +42,12 @@
 
 <aside id="sidebar" class="hidden">
   <div class="side-head">
+    <label class="select-all" title="全选 / 全不选当前列表地块">
+      <input type="checkbox" id="check-all">
+      <span>全选</span>
+    </label>
     <span id="stat-line">0 个地块</span>
+    <button id="btn-export-csv" class="btn-mini" type="button" disabled>导出 CSV</button>
   </div>
   <div class="side-filter">
     <input type="search" id="filter-input" placeholder="筛选地块（名称 / 备注 / 面积 / 坐标…）" autocomplete="off">
@@ -54,14 +59,14 @@
   <div class="dz-inner">
     <div class="hero-title">卫星图 KML 定位查询</div>
     <div class="hero-sub">把 KML / KMZ 文件拖入页面，或点击顶部「上传 KML / KMZ」</div>
-    <div class="hero-sign">v1.0.14 by Mr lin</div>
+    <div class="hero-sign">v1.0.15 by Mr lin</div>
   </div>
 </div>
 
 <div id="drag-overlay"><span>松开以加载文件</span></div>
 <div id="loading" class="hidden"><div class="spinner"></div><span id="loading-text">正在解析…</span></div>
 <div id="toast"></div>
-<div id="credit">v1.0.14 by Mr lin</div>
+<div id="credit">v1.0.15 by Mr lin</div>
 
 <input type="file" id="file-input" accept=".kml,.kmz" multiple hidden>
 

@@ -2,7 +2,7 @@
 
 ## 当前版本
 
-v1.0.14（2026-11-25）
+v1.0.15（2026-11-25）
 
 ## 已完成功能
 
@@ -13,12 +13,14 @@ v1.0.14（2026-11-25）
 - 高德底图 GCJ-02 自动纠偏（渲染坐标偏移，计算仍基于 WGS84）
 - 点 / 线 / 面渲染，还原 KML 样式，无样式用调色板
 - 地块勾选显隐：每行前复选框，默认全部勾选，勾选状态跨底图保持
+- 全局全选：侧栏统计行复选框三态，切换当前列表全部地块；筛选时只改勾选状态，地图/导出按筛选结果
+- CSV 导出：当前可显示地块（筛选=匹配行，否则=勾选行）导出文件名/名称/类型/周长/面积/中心经纬度/备注；UTF-8 BOM、全字段引号、防公式注入，Excel 直接打开
 - 全字段筛选：侧栏筛选框匹配名称/备注/类型/文件名/周长/面积/坐标，地图同步只显示匹配要素（含点、线），清空恢复勾选状态
 - 谷歌式选中 / 取消选中：点击要素或侧栏行选中并**立即弹出信息卡**，选中区域**同色加深**（面=深色半透明叠层、线=加粗、点=加深圆点，无白边）；面（地块）选中后自动平滑居中到屏幕中央（缩放不变，点/线不移动）；再点同一要素、点空白、Esc、× 四种取消方式；选中与信息卡跨底图切换保持
 - 悬停仅做高亮（线宽/填充加深、行同步），不弹任何提示浮层
 - 闭合线按面处理：首尾重合（≤1 米）的 LineString 自动转面——填充、算面积周长、进侧栏、可勾选筛选（如闭合线示例.kmz）；非闭合线、点只上图不入栏
 - 双击侧栏条目定位，缩放封顶（Esri / 高德均 18 级；Esri 乡村 19 级为占位图）
-- 侧栏只列地块（面要素，含闭合线）：勾选框 + 色块 + 名称，半透明毛玻璃背景
+- 侧栏只列地块（面要素，含闭合线）：统计行全选框/导出按钮、文件分组、勾选框 + 色块 + 名称，半透明毛玻璃背景；文件级眼睛/垃圾桶已移除（v1.0.15）
 - 首页半透明主题面板「卫星图 KML 定位查询」+ 署名，无选择文件按钮（工具条上传或拖拽）；标题默认通用，`config.js` 的 `siteName` 可前置自用站点名
 - 清空复位：移除全部图层后地图平滑飞回初始全球视野（`HOME_VIEW` `[34,108]` 4 级），首页主题面板重现；底图/注记/单位偏好保留
 - Docker / ACR 部署：`deploy/Dockerfile`（nginx:1.27-alpine）+ `nginx.conf` + `docker-compose.yml` + 构建/推送脚本（PowerShell / sh），部署手册见 `doc/DEPLOY.md` 方式四
@@ -63,6 +65,7 @@ v1.0.14（2026-11-25）
 | 26 | ACR registry 接口无法删除仓库或 manifest | 个人版 ACR 的 token 只授予 `pull`，`DELETE .../manifests/<digest>` 返回 401，`DELETE /v2/<repo>/` 返回 404 | 在 ACR 控制台删除仓库；随后重跑原 tag 的 Actions run，推送时自动重建仓库与标签 | 仓库级删除属 ACR 控制面能力，不能依赖 Docker Registry v2 接口 |
 | 27 | 腾讯注记瓦片被误判为矢量 PBF | `type=vector&styleid=3` 返回 `application/octet-stream`，直接按 Content-Type 判断会以为无法栅格显示 | 实测字节头为 PNG、256×256 带透明通道；浏览器 `<img>` 按内容解码，普通 `L.tileLayer` 即可叠加 | 响应头不可信，验证瓦片要看魔数与实际渲染 |
 | 28 | 腾讯卫星瓦片按标准 `{z}/{x}/{y}` 请求大面积 0 字节 | 路径需 TMS 行号（y 翻转）同时用于 16 格目录与文件名，且 `x16/yt16` 是分组目录 | 自定义 `QQBase.getTileUrl()` 计算 `yt = 2^z−1−y`、`x16 = x>>4`、`y16 = yt>>4`；注记层用 `tms: true` | 非标准 XYZ 服务先逆向出 URL 规则再写图层，不要套标准模板 |
+| 29 | 本地截图品牌显示真实站点名，违反脱敏要求 | 页面读取本地 `config.js` 的 `siteName`，截图直接拍到真实站名 | 截图前在页面把 `.brand` 文本改为通用「卫星图」再截，覆盖为干净图；文档仍只使用通用样例 | 本地配置参与渲染的内容，截图前必须显式去敏，不能只依赖样例数据 |
 
 ## 架构决策
 
@@ -99,7 +102,7 @@ v1.0.14（2026-11-25）
 ## 待办清单
 
 - [ ] 地图手动测量工具（画线/画面直接出周长面积）
-- [ ] 要素导出 GeoJSON / 截图
+- [ ] 要素导出 GeoJSON / 截图（CSV 已于 v1.0.15 提供）
 - [ ] 更多底图源切换（天地图注记与卫星图已接入，可再补天地图矢量）
 - [ ] 点聚合
 
@@ -110,13 +113,13 @@ node scripts/serve.js            # 本地预览 http://127.0.0.1:8000
 node test/make_samples.mjs       # 重新生成测试样例与预期值
 
 # GitHub Actions（推荐）：打标签推送即自动构建并推 ACR
-git tag v1.0.14 && git push origin v1.0.14
+git tag v1.0.15 && git push origin v1.0.15
 
 # 或本地构建推送（需装有 Docker 的机器；命名空间、Registry 可用参数覆盖）
 powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Namespace <命名空间>
 powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Namespace <命名空间> -Username <阿里云账号全名>
 # 服务器
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.14 docker compose -f deploy/docker-compose.yml up -d
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.15 docker compose -f deploy/docker-compose.yml up -d
 ```
 
 无构建步骤；发布 = 拷贝 `index.html` + `static/`（+ 可选 doc/）。
