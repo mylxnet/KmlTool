@@ -2,22 +2,22 @@
 
 ## 1. 概述
 
-KML 卫星地图查看器：纯前端静态网页，本地解析 KML/KMZ 并叠加到 Esri / 天地图 / 高德卫星影像或高德普通地图，勾选 / 筛选控制地块显示，点击要素选中后立即查看名称、周长、面积等信息；首尾闭合的线自动按地块处理。Esri 卫星图可叠加天地图中文注记（镇、村、社名与主要地名），天地图卫星图自带影像注记。清空后地图平滑飞回初始全球视野。提供 Docker / 阿里云 ACR 镜像部署。站点名称默认通用，可通过 `config.js` 的 `siteName` 自定义。版本 v1.0.13。
+KML 卫星地图查看器：纯前端静态网页，本地解析 KML/KMZ 并叠加到 Esri / 天地图 / 高德 / 腾讯卫星影像或高德普通地图，勾选 / 筛选控制地块显示，点击要素选中后立即查看名称、周长、面积等信息；首尾闭合的线自动按地块处理。Esri 卫星图可叠加天地图中文注记（镇、村、社名与主要地名），天地图卫星图自带影像注记。清空后地图平滑飞回初始全球视野。提供 Docker / 阿里云 ACR 镜像部署。站点名称默认通用，可通过 `config.js` 的 `siteName` 自定义。版本 v1.0.14。
 
 ## 2. 运行环境
 
 | 项 | 要求 |
 | --- | --- |
 | 浏览器 | Edge / Chrome（推荐；Firefox 亦可用，仅失去 GBK 自动识别） |
-| 网络 | 需要联网加载 Esri / 高德卫星瓦片；选用天地图注记或天地图卫星图时还需访问 `t0–t7.tianditu.gov.cn` |
+| 网络 | 需要联网加载 Esri / 高德卫星瓦片；选用天地图注记或天地图卫星图时还需访问 `t0–t7.tianditu.gov.cn`；选用腾讯卫星图时访问 `p0–p3.map.gtimg.com` 与 `rt0–rt3.map.gtimg.com` |
 | 运行时 | 无（双击 index.html 即用）；可选 Node.js 用于本地预览服务 |
 
 ## 3. 模块划分（static/js/app.js）
 
 | 区块 | 职责 |
 | --- | --- |
-| 全局状态 `state` | 文件集合（Map）、面积单位、底图（esri/tdt/gaode/gaode-vec）、注记来源（tdt/esri/off）、筛选关键字、当前选中记录 |
-| 地图初始化 | Leaflet 地图、初始视野常量 `HOME_VIEW`（`[34,108]` 4 级，清空复位共用）、Esri 影像/注记层、天地图卫星影像/注记层、高德影像/注记层、高德普通地图层、天地图注记层（8 层常驻按需增删）、缩放/比例尺控件 |
+| 全局状态 `state` | 文件集合（Map）、面积单位、底图（esri/tdt/gaode/gaode-vec/qq）、注记来源（tdt/esri/off）、筛选关键字、当前选中记录 |
+| 地图初始化 | Leaflet 地图、初始视野常量 `HOME_VIEW`（`[34,108]` 4 级，清空复位共用）、Esri 影像/注记层、天地图卫星影像/注记层、高德影像/注记层、高德普通地图层、天地图注记层、腾讯影像/注记层（10 层常驻按需增删）、缩放/比例尺控件 |
 | GCJ-02 纠偏 | `wgs84ToGcj02`（标准火星坐标算法）、`displayGeom`（各几何类型递归偏移，切底图时重渲染） |
 | 工具函数 | 数值格式化（中文千分位）、长度/面积/坐标格式化、toast、加载层、HTML 净化（剥离危险标签/事件属性/表现属性）、`stripHtml` |
 | 解析链 | `decodeKml`（编码识别）→ `parseKml`（DOMParser + toGeoJSON）→ `unzipKmz`（JSZip） |
@@ -70,12 +70,12 @@ togeojson 会把 KML `<Style>`（aabbggrr 颜色、透明度）转成属性 `str
 ### 5.3 渲染与交互
 
 - 每条记录 = 一个 `L.geoJSON`（FeatureGroup），避免手写坐标翻转出错；
-- 渲染几何经 `displayGeom()`：高德底图（卫星或普通地图）时整体偏移到 GCJ-02，Esri 时原样；计算（面积/周长/中心）始终用原始 WGS84 几何；
+- 渲染几何经 `displayGeom()`：高德两类底图与腾讯卫星图时整体偏移到 GCJ-02，Esri / 天地图时原样；计算（面积/周长/中心）始终用原始 WGS84 几何；
 - 面填充透明度上限 0.45，悬停时线宽 +2、填充 +0.2，`bringToFront` 防遮挡（选中态跳过悬停高亮）；悬停不弹任何浮层；
 - 信息卡（`bindPopup`，半透明深色、带 ×）内容由 `detailContent()` 构建；`bindPopup` 后执行 `layer.off('click', layer._openPopup)` 拆除 Leaflet 自带点击弹卡；
 - 点击要素 / 侧栏行 → 选中并立即 `openPopup()`；面要素再调 `centerOnRecord()` 平滑平移到屏幕中央（`flyTo` 外接矩形中心、保持当前 zoom、0.6s），点 / 线不移动；再点同一要素 / 点空白 / Esc / 点 × → `clearSelected()`；
 - 选中视觉：`ensureHalo()` 用 `darkenHex(原色, 0.7)` 生成同色加深覆盖层（面=半透明深色填充 0.5–0.7、线=线宽 +2、点=半径 10 圆点），`interactive:false` 不拦截点击，`bringToFront` 置顶；
-- 双击侧栏行 → 选中并 `flyToBounds(bounds.pad(0.5), { maxZoom: currentMaxZoom() })` 封顶（Esri / 高德均 18），点为 flyTo 到 zoom≥15；乡村区域 Esri 19 级为占位图，故上限 18；
+- 双击侧栏行 → 选中并 `flyToBounds(bounds.pad(0.5), { maxZoom: currentMaxZoom() })` 封顶（Esri / 高德 / 腾讯均 18），点为 flyTo 到 zoom≥15；乡村区域 Esri 19 级为占位图，故上限 18；
 - 要素层 `bubblingMouseEvents:false`，地图空白点击与 Esc 触发取消选中；
 - `popupclose` 联动取消，但仅当 `map.hasLayer(layer)` 时生效——底图切换重建（旧层移除）触发的 popupclose 不清选中；切换前信息卡已打开则重建后自动重开；
 - 面积单位切换只 `setPopupContent()` 原地刷新（打开状态 Leaflet 即时重排），不关卡重开，避免 popupclose 误清选中；
@@ -94,7 +94,7 @@ togeojson 会把 KML `<Style>`（aabbggrr 颜色、透明度）转成属性 `str
 
 ### 5.6 GCJ-02 偏移（wgs84ToGcj02）
 
-标准算法：a=6378245.0、ee=0.00669342162296594323、transformLat/transformLng 多项式。仅对中国范围（经度 72.004–137.8347、纬度 0.8293–55.8271）内的坐标偏移；高度维保留。北京地区偏移量约 0.006°（数百米），不做纠偏在高德底图（卫星与普通地图）上要素会明显错位。
+标准算法：a=6378245.0、ee=0.00669342162296594323、transformLat/transformLng 多项式。仅对中国范围（经度 72.004–137.8347、纬度 0.8293–55.8271）内的坐标偏移；高度维保留。北京地区偏移量约 0.006°（数百米），不做纠偏在高德 / 腾讯底图上要素会明显错位。
 
 ### 5.7 闭合线按面处理（closedRingOf）
 
@@ -111,6 +111,15 @@ togeojson 会把 KML `<Style>`（aabbggrr 颜色、透明度）转成属性 `str
 - `applyTiles()` 规则：Esri 底图下 `state.labels==='tdt'` 用天地图注记、`'esri'` 用 Esri 注记、`'off'` 无注记；高德底图始终用高德自带注记；
 - `maxZoom: 18`、不设 `maxNativeZoom`：注记按天地图原生层级显示，18 级字号与低级一致、不放大（乡村 18 级仅有零星 POI，属数据限制）；
 - 坐标系：CGCS2000（≈WGS84），直接叠在 Esri 影像上无偏移；空瓦片（213B 透明 PNG）属正常，不报错。
+
+### 5.9 腾讯卫星图（qq）
+
+- 影像：`https://p{0-3}.map.gtimg.com/sateTiles/{z}/{x16}/{yt16}/{x}_{yt}.jpg`，`yt = 2^z−1−y` 为 TMS 行号，`x16/yt16` 为 16 格分组；标准 `{x}/{y}` 模板无法表达，故 `QQBase = L.TileLayer.extend({ getTileUrl })` 自定义；
+- 注记：`https://rt{0-3}.map.gtimg.com/tile?z={z}&x={x}&y={y}&type=vector&styleid=3&version=376`，`tms: true` 翻转 y；实际返回 256×256 透明 PNG（Content-Type 为 `application/octet-stream`，浏览器按图片解码）；
+- 坐标系：GCJ-02，`isGcjBasemap()` 含 `qq`，渲染前 `displayGeom()` 偏移；计算仍用 WGS84；
+- 缩放：`QQ_MAX_ZOOM=18`，19 级起影像为约 1.2KB 占位图、注记 169B 空图；
+- 注记开关：`state.labels === 'off'` 时隐藏腾讯注记，其余两档对腾讯底图均显示腾讯自带注记；
+- 覆盖：仅中国境内；无 tk / Referer 校验；首次瓦片失败弹一次提示。
 
 ## 6. 构建与发布
 

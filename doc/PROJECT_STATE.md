@@ -2,12 +2,12 @@
 
 ## 当前版本
 
-v1.0.13（2026-11-25）
+v1.0.14（2026-11-25）
 
 ## 已完成功能
 
 - KML / KMZ 上传（多选、拖拽），KMZ 解压并优先读取 doc.kml
-- 四种底图切换：Esri World Imagery（默认）+ 天地图卫星图（img_w 影像 + 自带 cia_w 注记，WGS84 免纠偏）+ 高德卫星图（含注记）+ 高德普通地图（webrd 路网，自带注记），选择记忆；天地图卫星 18 级封顶、依赖 tk 的 img/cia 服务
+- 五种底图切换：Esri World Imagery（默认）+ 天地图卫星图（img_w 影像 + 自带 cia_w 注记，WGS84 免纠偏）+ 高德卫星图（含注记）+ 高德普通地图（webrd 路网，自带注记）+ 腾讯卫星图（sateTiles 影像 + 腾讯透明注记，GCJ-02 自动纠偏，无需密钥），选择记忆；天地图卫星 18 级封顶、依赖 tk 的 img/cia 服务；腾讯影像仅覆盖中国境内、18 级封顶
 - 天地图中文注记：Esri 卫星图可叠加天地图透明注记（镇、村、社名与主要 POI / 道路），顶栏「注记来源」三档（天地图 / Esri / 不显示）并记忆；注记按原生层级显示、字号不放大
 - 天地图注记配置：把 `config.example.js` 复制为 `config.js` 填入自用「浏览器端」tk（`config.js` 不入库），留空则自动禁用该选项、回退 Esri 注记
 - 高德底图 GCJ-02 自动纠偏（渲染坐标偏移，计算仍基于 WGS84）
@@ -61,6 +61,8 @@ v1.0.13（2026-11-25）
 | 24 | `DELETE /repos/mylxnet/KmlTool` 返回 403 | classic PAT 仅有 `repo, workflow, write:packages`，删除仓库需要 `delete_repo` scope，管理员权限不能替代 | 改由仓库所有者在网页 Settings → Danger Zone 删除，再同名重建 | 涉及删除的自动化先核对 token scopes，不要假设 admin 权限足够 |
 | 25 | 重建仓库的 `POST /user/repos` 返回 400「Problems parsing JSON」 | Git Bash 下 `curl -d` 携带中文描述时请求体被转写损坏 | 用 UTF-8 JSON 文件配合 `--data-binary @file`，或改用纯 ASCII 描述 | 含非 ASCII 的 JSON 一律走文件体，避免命令行编码问题 |
 | 26 | ACR registry 接口无法删除仓库或 manifest | 个人版 ACR 的 token 只授予 `pull`，`DELETE .../manifests/<digest>` 返回 401，`DELETE /v2/<repo>/` 返回 404 | 在 ACR 控制台删除仓库；随后重跑原 tag 的 Actions run，推送时自动重建仓库与标签 | 仓库级删除属 ACR 控制面能力，不能依赖 Docker Registry v2 接口 |
+| 27 | 腾讯注记瓦片被误判为矢量 PBF | `type=vector&styleid=3` 返回 `application/octet-stream`，直接按 Content-Type 判断会以为无法栅格显示 | 实测字节头为 PNG、256×256 带透明通道；浏览器 `<img>` 按内容解码，普通 `L.tileLayer` 即可叠加 | 响应头不可信，验证瓦片要看魔数与实际渲染 |
+| 28 | 腾讯卫星瓦片按标准 `{z}/{x}/{y}` 请求大面积 0 字节 | 路径需 TMS 行号（y 翻转）同时用于 16 格目录与文件名，且 `x16/yt16` 是分组目录 | 自定义 `QQBase.getTileUrl()` 计算 `yt = 2^z−1−y`、`x16 = x>>4`、`y16 = yt>>4`；注记层用 `tms: true` | 非标准 XYZ 服务先逆向出 URL 规则再写图层，不要套标准模板 |
 
 ## 架构决策
 
@@ -69,7 +71,8 @@ v1.0.13（2026-11-25）
 - **显示规则集中**：勾选（checked）与筛选（filter）由 `recVisible` 统一裁决，`applyVisibility` 全量增删图层；选中只负责高亮，不再控制显隐；
 - **点击即弹卡 + 同色加深**：`bindPopup` 绑定信息卡后拆除 Leaflet 默认点击弹卡，点击由选中流程统一开关；覆盖层用原色压暗（darkenHex 0.7）整体加深，不使用白色光晕；
 - **闭合线归一**：`closedRingOf` 在建模阶段把首尾重合的线升级为 Polygon，后续链路（样式/计算/侧栏/筛选/选中）无需分支；
-- **注记层选型**：叠加 Esri 影像的中文注记选天地图 `cva_w`——CGCS2000≈WGS84 可直叠无偏移；高德注记 GCJ-02 偏移数百米且栅格无法纠偏，不采用；
+- **注记层选型**：叠加 Esri 影像的中文注记选天地图 `cva_w`——CGCS2000≈WGS84 可直叠无偏移；高德 / 腾讯注记 GCJ-02 偏移数百米且栅格无法纠偏，只随各自底图使用；
+- **腾讯瓦片特化**：非标准 TMS 路径（y 翻转 + 16 格分组）用 `QQBase` 自定义 `getTileUrl`；注记 `type=vector` 实为透明 PNG，`tms:true` 普通图层即可；
 - **全库本地化**：不依赖 CDN，国内网络环境双击即用；
 - **单位/底图记忆**：localStorage 保存，下拉框与状态双向同步；
 - **渲染安全**：唯一 innerHTML 入口 + 白名单净化。
@@ -80,6 +83,7 @@ v1.0.13（2026-11-25）
 - 天地图乡村注记本身稀疏（17 级约 7/25 瓦片有内容），18 级数据几乎只有 POI；注记按原生层级显示、字号不放大，放大到 18 级后乡村地名会更少；高德 / 腾讯注记为 GCJ-02，无法直接叠 Esri 影像；
 - 天地图注记依赖个人申请的 tk（浏览器端），tk 失效或超额时注记缺失，影像与地块功能不受影响；
 - 天地图卫星图同样依赖该 tk，且控制台需勾选影像与影像注记服务；公开影像仅到 18 级（19 级起为「此级别下，该区域无影像」占位图），影像自身有数十米级配准偏差，未做按米平移标定；
+- 腾讯卫星图仅覆盖中国境内，境外空白；公开影像 18 级封顶（19 级起约 1.2KB 占位图、注记 169B 空图）；腾讯注记只随腾讯底图显示，「注记来源」选天地图 / Esri 对该底图无效，仅「不显示」可隐藏；
 - 点击居中按「整页屏幕中心」计算（地图容器满屏，x≈720）；侧栏 300px 浮层在左侧，居中位置不受其影响，也不会被遮挡；点、线要素点击不移动地图；
 - 清空只复位视野与图层，不重置底图、注记来源、面积单位（偏好属于用户设置，跨清空保留）；
 - 闭合线判定阈值为首尾相距 ≤1 米，未真正闭合的线不会自动转面；
@@ -106,13 +110,13 @@ node scripts/serve.js            # 本地预览 http://127.0.0.1:8000
 node test/make_samples.mjs       # 重新生成测试样例与预期值
 
 # GitHub Actions（推荐）：打标签推送即自动构建并推 ACR
-git tag v1.0.13 && git push origin v1.0.13
+git tag v1.0.14 && git push origin v1.0.14
 
 # 或本地构建推送（需装有 Docker 的机器；命名空间、Registry 可用参数覆盖）
 powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Namespace <命名空间>
 powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Namespace <命名空间> -Username <阿里云账号全名>
 # 服务器
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.13 docker compose -f deploy/docker-compose.yml up -d
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.14 docker compose -f deploy/docker-compose.yml up -d
 ```
 
 无构建步骤；发布 = 拷贝 `index.html` + `static/`（+ 可选 doc/）。

@@ -13,6 +13,19 @@ const tdtWmtsUrl = layer => 'https://t{s}.tianditu.gov.cn/' + layer + '_w/wmts?S
 const TDT_LABEL_URL = tdtWmtsUrl('cva');
 const TDT_IMG_URL = tdtWmtsUrl('img');
 const TDT_CIA_URL = tdtWmtsUrl('cia');
+const QQ_MAX_ZOOM = 18; // 19 级起为占位图（约 1.2KB PNG）
+// 腾讯卫星瓦片：TMS 行号（y 翻转）同时用于目录分组与文件名，x16/y16 为 16 格分组
+// 示例：z16 / 3372 / 2543 / 53957_40703.jpg
+const QQBase = L.TileLayer.extend({
+  getTileUrl(coords) {
+    const z = this._getZoomForUrl();
+    const yt = Math.pow(2, z) - 1 - coords.y;
+    return 'https://p' + this._getSubdomain(coords) + '.map.gtimg.com/sateTiles/' +
+      z + '/' + Math.floor(coords.x / 16) + '/' + Math.floor(yt / 16) + '/' + coords.x + '_' + yt + '.jpg';
+  }
+});
+// 腾讯注记：type=vector 实际返回透明 PNG 注记瓦片（Content-Type 标为 octet-stream，浏览器按图片解码）
+const QQ_LABEL_URL = 'https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&type=vector&styleid=3&version=376';
 const PALETTE = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60', '#6d4c41'];
 
 /* ================= 全局状态 ================= */
@@ -20,7 +33,7 @@ const state = {
   files: new Map(), // id -> { id, name, group, features: [], visible }
   nextId: 1,
   unit: localStorage.getItem('kmlUnit') || 'ha',
-  basemap: localStorage.getItem('kmlBasemap') || 'esri', // esri | tdt | gaode | gaode-vec
+  basemap: localStorage.getItem('kmlBasemap') || 'esri', // esri | tdt | gaode | gaode-vec | qq
   labels: localStorage.getItem('kmlLabels') || (TIANDITU_TK ? 'tdt' : 'esri'), // off | esri | tdt
   filter: '', // 筛选关键词（小写、已 trim）
   selected: null // 当前选中的要素记录
@@ -85,6 +98,13 @@ const tdtSatLabels = TIANDITU_TK
       maxZoom: TDT_MAX_ZOOM, attribution: '注记 © 天地图'
     })
   : null;
+// 腾讯卫星图（GCJ-02）：p0–p3 子域，18 级封顶；注记层用 tms 翻转 y 取瓦片
+const qqBase = new QQBase('', {
+  subdomains: ['0', '1', '2', '3'], maxZoom: QQ_MAX_ZOOM, attribution: '影像 © 腾讯地图'
+});
+const qqLabels = L.tileLayer(QQ_LABEL_URL, {
+  subdomains: ['0', '1', '2', '3'], tms: true, maxZoom: QQ_MAX_ZOOM, attribution: '注记 © 腾讯地图'
+});
 
 let tdtWarned = false;
 if (tdtSat) tdtSat.on('tileerror', () => {
@@ -93,15 +113,28 @@ if (tdtSat) tdtSat.on('tileerror', () => {
   toast('天地图瓦片加载失败，请确认 tk 已开通影像与影像注记服务', true);
 });
 
-function isGcjBasemap() { return state.basemap === 'gaode' || state.basemap === 'gaode-vec'; }
+let qqWarned = false;
+qqBase.on('tileerror', () => {
+  if (qqWarned || state.basemap !== 'qq') return;
+  qqWarned = true;
+  toast('腾讯地图影像仅覆盖中国境内，境外或网络受限区域可能空白', true);
+});
+
+function isGcjBasemap() {
+  return state.basemap === 'gaode' || state.basemap === 'gaode-vec' || state.basemap === 'qq';
+}
 function currentMaxZoom() {
   if (state.basemap === 'tdt') return TDT_MAX_ZOOM;
+  if (state.basemap === 'qq') return QQ_MAX_ZOOM;
   return state.basemap === 'esri' ? ESRI_MAX_ZOOM : GAODE_MAX_ZOOM;
 }
 
 function applyTiles() {
-  [esriBase, esriLabels, gaodeBase, gaodeLabels, gaodeVec, tdtLabels, tdtSat, tdtSatLabels].forEach(l => { if (l) map.removeLayer(l); });
-  if (state.basemap === 'tdt') {
+  [esriBase, esriLabels, gaodeBase, gaodeLabels, gaodeVec, tdtLabels, tdtSat, tdtSatLabels, qqBase, qqLabels].forEach(l => { if (l) map.removeLayer(l); });
+  if (state.basemap === 'qq') {
+    qqBase.addTo(map);
+    if (state.labels !== 'off') qqLabels.addTo(map); // 腾讯注记只与腾讯影像配套，tms 对齐
+  } else if (state.basemap === 'tdt') {
     if (tdtSat) tdtSat.addTo(map);
     if (tdtSatLabels && state.labels !== 'off') tdtSatLabels.addTo(map);
   } else if (state.basemap === 'gaode') {
@@ -116,7 +149,7 @@ function applyTiles() {
   }
 }
 
-/* ================= GCJ-02 偏移（高德瓦片为火星坐标，KML 是 WGS84） ================= */
+/* ================= GCJ-02 偏移（高德 / 腾讯瓦片为火星坐标，KML 是 WGS84） ================= */
 function gcjTransformLat(x, y) {
   let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
   ret += ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0) / 3.0;
@@ -148,7 +181,7 @@ function wgs84ToGcj02(lng, lat) {
   return [lng + dLng, lat + dLat];
 }
 
-/* 当前底图为高德系时，把几何坐标整体偏移到 GCJ-02 再渲染 */
+/* 当前底图为高德 / 腾讯时，把几何坐标整体偏移到 GCJ-02 再渲染 */
 function displayGeom(geom) {
   if (!isGcjBasemap() || !geom) return geom;
   const pt = c => wgs84ToGcj02(c[0], c[1]).concat(c.slice(2));
@@ -830,9 +863,9 @@ if ([...basemapSel.options].some(o => o.value === state.basemap)) basemapSel.val
 const labelsSel = $('sel-labels');
 const LABELS_HINT = labelsSel.title;
 function syncLabelsHint() {
-  labelsSel.title = state.basemap === 'tdt'
-    ? '天地图卫星图自带注记；选「不显示注记」可隐藏'
-    : LABELS_HINT;
+  if (state.basemap === 'tdt') labelsSel.title = '天地图卫星图自带注记；选「不显示注记」可隐藏';
+  else if (state.basemap === 'qq') labelsSel.title = '腾讯卫星图自带腾讯注记；选「不显示注记」可隐藏';
+  else labelsSel.title = LABELS_HINT;
 }
 syncLabelsHint();
 

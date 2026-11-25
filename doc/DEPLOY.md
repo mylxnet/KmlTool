@@ -59,11 +59,11 @@ server {
 2. 打标签并推送，触发构建：
 
    ```bash
-   git tag v1.0.13
-   git push origin v1.0.13
+   git tag v1.0.14
+   git push origin v1.0.14
    ```
 
-3. Actions 完成后，ACR 中出现 `v1.0.13` 与 `latest`（上一实跑版本 v1.0.12：run 45415825844，digest `sha256:08f2b67…`，命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
+3. Actions 完成后，ACR 中出现 `v1.0.14` 与 `latest`（上一实跑版本 v1.0.12：run 45415825844，digest `sha256:08f2b67…`，命名空间 `mylxnet` 下仓库自动创建）。也可在 Actions 页面手动 `workflow_dispatch` 触发。
 
 需要彻底重建镜像时，在 ACR 控制台删除仓库后重跑对应 tag 的 Actions run 即可（个人版 registry 接口不支持仓库级删除）；重跑只会产出该 tag 与 `latest`。
 
@@ -85,7 +85,7 @@ NAMESPACE=<命名空间> sh deploy/build.sh
 NAMESPACE=<命名空间> sh deploy/push-acr.sh
 ```
 
-推送完成后，ACR 仓库中会有 `v1.0.13` 与 `latest` 两个标签。脚本默认地址为 `registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.13`，可用 `-Registry` / `REGISTRY` 覆盖。
+推送完成后，ACR 仓库中会有 `v1.0.14` 与 `latest` 两个标签。脚本默认地址为 `registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.14`，可用 `-Registry` / `REGISTRY` 覆盖。
 
 ### 3. 服务器部署（只需 Docker + Compose）
 
@@ -96,7 +96,7 @@ scp deploy/docker-compose.yml root@<服务器>:/opt/kml-viewer/
 # 服务器上启动（KML_IMAGE 换成你的 ACR 全路径；私有仓库先登录）
 docker login registry.cn-hangzhou.aliyuncs.com
 cd /opt/kml-viewer
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.13 \
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.14 \
   docker compose up -d
 ```
 
@@ -105,12 +105,12 @@ KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.13 \
 ### 4. 升级与回滚
 
 ```bash
-# 本地：改完代码后重新构建并推送新标签（如 v1.0.13）
-powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Tag v1.0.13 -Namespace <命名空间>
-powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Tag v1.0.13 -Namespace <命名空间>
+# 本地：改完代码后重新构建并推送新标签（如 v1.0.14）
+powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Tag v1.0.14 -Namespace <命名空间>
+powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Tag v1.0.14 -Namespace <命名空间>
 
 # 服务器：拉新镜像并重建
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.13 \
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.14 \
   docker compose up -d
 ```
 
@@ -142,7 +142,7 @@ ACR 仓库建议设为私有；未登录时编排会报 `pull access denied`。�
 | 用户名 | ACR 用户名（阿里云账号全名） |
 | 密码 | ACR 控制台设置的固定密码 |
 
-保存后可在「镜像」页尝试拉取 `registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.13` 验证。也可在 1Panel 终端执行：
+保存后可在「镜像」页尝试拉取 `registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.14` 验证。也可在 1Panel 终端执行：
 
 ```bash
 docker login --username=<ACR用户名> registry.cn-hangzhou.aliyuncs.com
@@ -160,7 +160,7 @@ docker login --username=<ACR用户名> registry.cn-hangzhou.aliyuncs.com
 ```yaml
 services:
   kml-viewer:
-    image: registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.13
+    image: registry.cn-hangzhou.aliyuncs.com/mylxnet/kml-viewer:v1.0.14
     container_name: kml-viewer
     ports:
       - "8080:80"
@@ -184,7 +184,7 @@ services:
 
 ### 3. 放行端口
 
-1Panel → 主机 → 防火墙放行 `8080/tcp`；云服务器还需在安全组放行同一端口。浏览器访问 `http://<服务器IP>:8080`，右下角应显示 `v1.0.13 by Mr lin`。
+1Panel → 主机 → 防火墙放行 `8080/tcp`；云服务器还需在安全组放行同一端口。浏览器访问 `http://<服务器IP>:8080`，右下角应显示 `v1.0.14 by Mr lin`。
 
 ### 4. 可选：自定义站点名
 
@@ -212,7 +212,7 @@ services:
 
 ### 5. 升级与回滚
 
-把 YAML 中镜像标签改成新版本（如 `v1.0.13`），在编排页面执行「拉取镜像」→「重建」。回滚把标签换回旧版本再重建即可。生产环境建议固定版本标签，不建议长期用 `latest`。
+把 YAML 中镜像标签改成新版本（如 `v1.0.14`），在编排页面执行「拉取镜像」→「重建」。回滚把标签换回旧版本再重建即可。生产环境建议固定版本标签，不建议长期用 `latest`。
 
 ### 6. 反向代理与 HTTPS（可选）
 

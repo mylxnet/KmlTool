@@ -13,7 +13,8 @@
 | 高德卫星底图（可选） | 天地图卫星 | 国内访问快，作备选卫星底图；但瓦片为 GCJ-02 坐标系，需要偏移纠偏 |
 | 天地图卫星底图（可选） | 天地图矢量 / 高德卫星 | 国家官方平台，CGCS2000≈WGS84 无需纠偏；`img_w` 影像 + 自带 `cia_w` 注记，18 级封顶；tk 与注记同源，需勾选 img/cia 服务 |
 | 高德普通地图（可选） | 天地图矢量 | 非卫星的路网地图（webrd 瓦片，自带注记，GCJ-02 同套纠偏），适合查看道路与地名 |
-| 天地图注记（可选） | Esri 参考注记 / 高德注记 | Esri 影像乡村地名稀少；天地图为 CGCS2000（≈WGS84），注记可直叠无偏移；高德注记为 GCJ-02 偏移不可用 |
+| 腾讯卫星图（可选） | 腾讯普通地图 / 高德卫星 | 腾讯 `sateTiles` 影像 + 自带透明注记，无需密钥；TMS 行号翻转 + 16 格分组路径需自定义 TileLayer；GCJ-02 同套纠偏，18 级封顶，仅覆盖中国境内 |
+| 天地图注记（可选） | Esri 参考注记 / 高德注记 | Esri 影像乡村地名稀少；天地图为 CGCS2000（≈WGS84），注记可直叠无偏移；高德 / 腾讯注记为 GCJ-02 偏移不可用 |
 | JSZip 3.10.1 | 自行解析 zip | KMZ 即 zip 压缩包，JSZip 成熟、MIT 许可 |
 | @tmcw/togeojson 5.8.1 | 自写 KML 解析器 | 社区标准库，输出 GeoJSON 并带样式属性 |
 | Turf.js 6.5.0 | 平面几何自算 | 椭球面（WGS84）面积/周长/中心点计算，与专业 GIS 结果一致 |
@@ -48,9 +49,10 @@
 
 ### 4.2 底图管理与坐标系纠偏
 
-- **四种底图**：Esri（`arcgisonline.com`，默认，maxZoom 18）、天地图卫星（`t{0-7}.tianditu.gov.cn` 的 `img_w` 影像 + `cia_w` 注记，maxZoom 18）、高德卫星（`webst0{1-4}.is.autonavi.com` style=6 卫星 + style=8 注记，maxZoom 18）、高德普通地图（`webrd0{1-4}.is.autonavi.com` style=8，自带注记，maxZoom 18）；八个瓦片层（四底图 + Esri 注记 + 天地图注记 + 天地图卫星影像/注记）常驻创建，`applyTiles()` 按 `state.basemap ∈ 'esri'|'tdt'|'gaode'|'gaode-vec'` 与 `state.labels ∈ 'tdt'|'esri'|'off'` 增删；选择写入 `localStorage.kmlBasemap` / `kmlLabels`。Esri 乡村区域 19 级仅有「Map data not yet available」占位图，故统一封顶 18（实测：占位图约 2.5KB，18 级影像 13–15KB）
+- **五种底图**：Esri（`arcgisonline.com`，默认，maxZoom 18）、天地图卫星（`t{0-7}.tianditu.gov.cn` 的 `img_w` 影像 + `cia_w` 注记，maxZoom 18）、高德卫星（`webst0{1-4}.is.autonavi.com` style=6 卫星 + style=8 注记，maxZoom 18）、高德普通地图（`webrd0{1-4}.is.autonavi.com` style=8，自带注记，maxZoom 18）、腾讯卫星（`p{0-3}.map.gtimg.com` 的 `sateTiles` 影像 + `rt{0-3}.map.gtimg.com` 注记，maxZoom 18）；十个瓦片层（五底图 + Esri 注记 + 天地图注记 + 天地图卫星自带注记 + 高德注记 + 腾讯注记）常驻创建，`applyTiles()` 按 `state.basemap ∈ 'esri'|'tdt'|'gaode'|'gaode-vec'|'qq'` 与 `state.labels ∈ 'tdt'|'esri'|'off'` 增删；选择写入 `localStorage.kmlBasemap` / `kmlLabels`。Esri 乡村区域 19 级仅有「Map data not yet available」占位图，故统一封顶 18（实测：占位图约 2.5KB，18 级影像 13–15KB）
+- **腾讯卫星**：瓦片路径为 `sateTiles/{z}/{x16}/{yt16}/{x}_{yt}.jpg`，其中 `yt = 2^z−1−y`（TMS 翻转），`x16/yt16` 为 16 格分组，标准 `{x}/{y}` 模板无法表达，故用 `L.TileLayer.extend` 重写 `getTileUrl()`；注记 `rt{s}.map.gtimg.com/tile?...&type=vector&styleid=3&version=376` 实际返回 256×256 透明 PNG（Content-Type 标为 `application/octet-stream`，浏览器按图片解码），用普通 `L.tileLayer` + `tms: true` 即可。实测 z18 真实影像约 11–16KB，z19/20 为约 1.2KB 占位图、z19 注记 169B 空图，故 `QQ_MAX_ZOOM=18`；`p0–p3` / `rt0–rt3` 可用（p4/rt4 不可解析），无 Referer / tk 校验
 - **天地图卫星**：天地图为 CGCS2000≈WGS84，渲染不做 GCJ-02 偏移；`img_w` 公开影像止于 18 级，实测 19/20 级均返回「此级别下，该区域无影像」占位图（约 4.7KB），`cia_w` 19 级起为 213B 空图，故 `TDT_MAX_ZOOM=18`；tk 未配置时底图选项禁用并回退 Esri，瓦片加载失败弹一次提示；`state.labels='off'` 时隐藏自带注记，另两档对该底图无影响（下拉提示语同步说明）
-- **GCJ-02 纠偏**：高德两类底图均为火星坐标，KML 是 WGS84。渲染前 `displayGeom()` 对 Point/MultiPoint/LineString/MultiLineString/Polygon/MultiPolygon 递归做 `wgs84ToGcj02()`（标准算法：a=6378245.0、ee=0.00669342162296594323，中国范围外 [72.004,137.8347]×[0.8293,55.8271] 不转换，高度维保留）。不做纠偏高德模式下要素会偏移约 300–500 米；`isGcjBasemap()` 仅对 `gaode` / `gaode-vec` 返回 true，天地图与 Esri 均原样
+- **GCJ-02 纠偏**：高德两类底图与腾讯卫星均为火星坐标，KML 是 WGS84。渲染前 `displayGeom()` 对 Point/MultiPoint/LineString/MultiLineString/Polygon/MultiPolygon 递归做 `wgs84ToGcj02()`（标准算法：a=6378245.0、ee=0.00669342162296594323，中国范围外 [72.004,137.8347]×[0.8293,55.8271] 不转换，高度维保留）。不做纠偏高德 / 腾讯模式下要素会偏移约 300–500 米；`isGcjBasemap()` 对 `gaode` / `gaode-vec` / `qq` 返回 true，天地图与 Esri 均原样
 - **切换重渲染**：切底图时 `rerenderFeatures()` 重建全部要素层（新坐标体系）并恢复选中状态；计算（面积/周长/中心）始终基于原始 WGS84 几何，不受显示坐标影响
 
 ### 4.3 关键计算口径
@@ -102,15 +104,15 @@ recVisible(rec) = 文件眼睛可见 && (筛选激活 ? matchesFilter(rec) : rec
 
 ### 4.7 界面
 
-- 顶部工具条：品牌「卫星图」（配置 `siteName` 时显示「<站点名>卫星图」）+ 上传按钮 + 清空按钮 + 底图下拉（Esri 卫星图 / 天地图卫星图 / 高德卫星图 / 高德普通地图）+ 面积单位下拉 + 注记来源下拉（天地图注记 / Esri 注记 / 不显示）
+- 顶部工具条：品牌「卫星图」（配置 `siteName` 时显示「<站点名>卫星图」）+ 上传按钮 + 清空按钮 + 底图下拉（Esri 卫星图 / 天地图卫星图 / 高德卫星图 / 高德普通地图 / 腾讯卫星图）+ 面积单位下拉 + 注记来源下拉（天地图注记 / Esri 注记 / 不显示）
 - 左侧栏（有地块时出现，半透明 + 毛玻璃）：统计行「N 个地块」/「匹配 N 个地块」+ 筛选输入框 + 文件分组（文件名+地块数、眼睛=显隐、垃圾桶=移除）+ 地块行（勾选框 + 色块 + 名称）
-- 空状态：居中半透明主题面板（`rgba(255,255,255,0.45)` + 毛玻璃、`pointer-events:none` 不挡地图）——大字「卫星图 KML 定位查询」（配置 `siteName` 时前置站点名）+ 操作提示 + 署名「v1.0.13 by Mr lin」；无选择文件按钮
+- 空状态：居中半透明主题面板（`rgba(255,255,255,0.45)` + 毛玻璃、`pointer-events:none` 不挡地图）——大字「卫星图 KML 定位查询」（配置 `siteName` 时前置站点名）+ 操作提示 + 署名「v1.0.14 by Mr lin」；无选择文件按钮
 - 清空复位：「清空」移除全部文件组、取消选中、清筛选框后，`flyTo(HOME_VIEW.center, HOME_VIEW.zoom, 0.8s)` 平滑飞回初始全球视野（`[34,108]` 4 级），空状态主题面板重现；底图、注记来源、面积单位等偏好保持不变
 - 信息卡（半透明深色、带 ×）：名称、类型、周长、面积、中心坐标、净化后的备注；点击选中立即弹出并保持，无悬停提示层
 - 备注区紧凑模板：剥离 `style/bgcolor/color/width/height/border/align/...` 等表现属性后，表格统一为透明底、文字继承信息卡颜色、1px 半透明细分隔线、`padding:2px 6px`、细滚动条
 - 交互：悬停仅高亮（线宽 +2、填充加深、列表行同步）、单击地块居中并弹卡（点/线只弹卡不移动）、双击侧栏行定位（`flyToBounds` 带 `maxZoom` 封顶：Esri / 高德均 18）、单位切换原地刷新信息卡
 - 手机适配（≤768px）：工具栏分两行（品牌/上传/清空 + 三个下拉等宽铺满）；侧栏改为底部抽屉（42dvh，最高 380px），地图在上方保持可见；筛选框 16px 防 iOS 聚焦缩放，地块行触控高 42px；触屏隐藏 +/- 与比例尺，改用双指缩放；选地块/加载/双击定位按抽屉高度偏移中心，信息卡按视口限宽并避让顶部工具栏与抽屉
-- 署名：右下角「v1.0.13 by Mr lin」
+- 署名：右下角「v1.0.14 by Mr lin」
 
 ### 4.8 注记层（天地图）
 
@@ -118,7 +120,7 @@ recVisible(rec) = 文件眼睛可见 && (筛选激活 ? matchesFilter(rec) : rec
 - **选型**：天地图透明注记 `cva_w`（WMTS，球面墨卡托，`t{0-7}.tianditu.gov.cn`，8 子域轮询）；坐标系为 CGCS2000（≈WGS84），可与 Esri 影像直接叠合无偏移。高德 / 腾讯注记为 GCJ-02，与 Esri 影像偏 300–500 米且栅格无法平移纠偏，不采用
 - **tk**：天地图「浏览器端」密钥（服务端校验 UA / Referer，白名单可留空），本地放项目根目录 `config.js`（`window.KML_CONFIG.tiandituTk`，不入库；Docker 构建时注入），`app.js` 读取后赋给 `TIANDITU_TK`；留空则不创建注记层与天地图卫星层，下拉中对应项禁用并回退 Esri
 - **缩放策略**：注记层 `maxZoom: 18`、不设 `maxNativeZoom`，18 级按天地图原生 18 级注记显示，字号与低级一致、不放大。实测乡村 18 级注记仅零星 POI（数据本身如此），曾试 17 级放大沿用（v1.0.4），因字号变大已取消（v1.0.5）
-- **作用范围**：`cva_w` 注记层仅叠加 Esri 卫星图；天地图卫星图使用自身 `cia_w` 注记，高德卫星 / 高德普通地图仍用高德自带注记
+- **作用范围**：`cva_w` 注记层仅叠加 Esri 卫星图；天地图卫星图使用自身 `cia_w` 注记，高德卫星 / 高德普通地图用高德自带注记，腾讯卫星图用腾讯自带注记（注记来源下拉对这两类底图仅「不显示」生效）
 - **数据现实**：天地图乡村注记本身稀疏（17 级约 7/25 瓦片有内容），空瓦片为 213B 透明图，不影响影像显示
 
 ## 5. 容错设计
@@ -142,6 +144,9 @@ recVisible(rec) = 文件眼睛可见 && (筛选激活 ? matchesFilter(rec) : rec
 | 天地图注记瓦片为空 / 加载失败 | 空瓦片为 213B 透明图，不报错；tk 失效时仅注记缺失，影像与地块不受影响 |
 | 天地图卫星瓦片加载失败 | 首次失败弹一次提示，检查 tk 是否勾选 img/cia 服务；其余底图与地块不受影响 |
 | 天地图卫星放大到 19 级 | 不会发生：封顶 18；公开影像 19 级起为占位图，非加载故障 |
+| 腾讯卫星图境外区域 | 腾讯影像仅覆盖中国境内，境外瓦片空白；首次失败弹一次提示，可切回 Esri |
+| 腾讯卫星放大到 19 级 | 不会发生：封顶 18；19 级起为约 1.2KB 占位图、注记 169B 空图 |
+| 腾讯卫星图下中国范围外要素 | 与高德一致：GCJ-02 不转换（境外无偏移） |
 
 ## 6. 代码审计要点
 
