@@ -2,7 +2,7 @@
 
 ## 当前版本
 
-v1.0.15（2026-11-25）
+v1.0.16（2026-11-25）
 
 ## 已完成功能
 
@@ -14,7 +14,7 @@ v1.0.15（2026-11-25）
 - 点 / 线 / 面渲染，还原 KML 样式，无样式用调色板
 - 地块勾选显隐：每行前复选框，默认全部勾选，勾选状态跨底图保持
 - 全局全选：侧栏统计行复选框三态，切换当前列表全部地块；筛选时只改勾选状态，地图/导出按筛选结果
-- CSV 导出：当前可显示地块（筛选=匹配行，否则=勾选行）导出文件名/名称/类型/周长/面积/中心经纬度/备注；UTF-8 BOM、全字段引号、防公式注入，Excel 直接打开
+- CSV 导出：当前可显示地块（筛选=匹配行，否则=勾选行）导出文件名/名称/类型/周长/面积/中心经纬度/备注；KML 备注若是 HTML 表格（含外层序号 + 内嵌键值表、单行交替键值）或空格分隔的「序号 + 键 值」文本，按字段拆成独立列（动态列并集，自由文本留「备注」，重名加 `(表)`）；UTF-8 BOM、全字段引号、防公式注入，Excel 直接打开
 - 全字段筛选：侧栏筛选框匹配名称/备注/类型/文件名/周长/面积/坐标，地图同步只显示匹配要素（含点、线），清空恢复勾选状态
 - 谷歌式选中 / 取消选中：点击要素或侧栏行选中并**立即弹出信息卡**，选中区域**同色加深**（面=深色半透明叠层、线=加粗、点=加深圆点，无白边）；面（地块）选中后自动平滑居中到屏幕中央（缩放不变，点/线不移动）；再点同一要素、点空白、Esc、× 四种取消方式；选中与信息卡跨底图切换保持
 - 悬停仅做高亮（线宽/填充加深、行同步），不弹任何提示浮层
@@ -95,14 +95,14 @@ v1.0.15（2026-11-25）
 - 面周长只计外边界（不含内部洞）；跨 180° 经线的要素显示会异常；
 - GroundOverlay（贴地图片）、gx:Track（轨迹回放）等冷门 KML 元素不渲染；
 - 超大文件（>100MB）解析较慢（加载层有提示）；
-- Docker 镜像构建与推送已由 GitHub Actions 实跑验证（v1.0.12，run 45415825844，ACR 命名空间 `mylxnet`）；开发机未安装 Docker，容器运行与 nginx 配置仍仅静态核对；
+- Docker 镜像构建与推送已由 GitHub Actions 实跑验证（v1.0.15，run 45606055300，ACR 命名空间 `mylxnet`）；开发机未安装 Docker，容器运行与 nginx 配置仍仅静态核对；
 - 阿里云 ACR 不接受 buildx 默认 provenance 证明清单，工作流已显式关闭 `provenance`/`sbom`，后续修改构建步骤需保留；
 - Firefox 无 GBK TextDecoder，GBK 文件会回退报错或乱码（建议 Edge/Chrome）。
 
 ## 待办清单
 
 - [ ] 地图手动测量工具（画线/画面直接出周长面积）
-- [ ] 要素导出 GeoJSON / 截图（CSV 已于 v1.0.15 提供）
+- [ ] 要素导出 GeoJSON / 截图（CSV 已于 v1.0.15 提供，v1.0.16 支持备注表格拆列）
 - [ ] 更多底图源切换（天地图注记与卫星图已接入，可再补天地图矢量）
 - [ ] 点聚合
 
@@ -113,13 +113,13 @@ node scripts/serve.js            # 本地预览 http://127.0.0.1:8000
 node test/make_samples.mjs       # 重新生成测试样例与预期值
 
 # GitHub Actions（推荐）：打标签推送即自动构建并推 ACR
-git tag v1.0.15 && git push origin v1.0.15
+git tag v1.0.16 && git push origin v1.0.16
 
 # 或本地构建推送（需装有 Docker 的机器；命名空间、Registry 可用参数覆盖）
 powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Namespace <命名空间>
 powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Namespace <命名空间> -Username <阿里云账号全名>
 # 服务器
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.15 docker compose -f deploy/docker-compose.yml up -d
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.16 docker compose -f deploy/docker-compose.yml up -d
 ```
 
 无构建步骤；发布 = 拷贝 `index.html` + `static/`（+ 可选 doc/）。

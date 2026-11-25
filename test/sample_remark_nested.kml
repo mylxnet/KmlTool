@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>己地块</name>
+      <description><![CDATA[<html>
+<body>
+<table>
+<tr><td>1234567890123</td></tr>
+<tr>
+<td>
+<table>
+<tr><td>FID</td><td>8</td></tr>
+<tr><td>BH</td><td>1234567890123</td></tr>
+<tr><td>XZQDM</td><td>123456</td></tr>
+<tr><td>XZQMC</td><td>示例省示例市示例县</td></tr>
+<tr><td>Proj_name</td><td>示例养殖场</td></tr>
+<tr><td>St_time</td><td>&lt;空&gt;</td></tr>
+<tr><td>Ed_time</td><td>&lt;空&gt;</td></tr>
+<tr><td>Area</td><td>0.022509</td></tr>
+<tr><td>Curse_type</td><td></td></tr>
+<tr><td>SYQK</td><td></td></tr>
+<tr><td>SJDL</td><td></td></tr>
+<tr><td>BAWJ</td><td></td></tr>
+<tr><td>BZ</td><td></td></tr>
+<tr><td>XZ</td><td>示例镇</td></tr>
+<tr><td>XZC</td><td>示例村</td></tr>
+<tr><td>BGBH</td><td>2020001</td></tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>]]></description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.50,39.80,0 116.51,39.80,0 116.51,39.81,0 116.50,39.81,0 116.50,39.80,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>庚地块</name>
+      <description><![CDATA[<table>
+<tr><td>1234567890124</td></tr>
+<tr><td>FID 9</td></tr>
+<tr><td>BH 1234567890124</td></tr>
+<tr><td>XZQMC 示例省示例市示例县</td></tr>
+<tr><td>Ed_time</td><td>&lt;空&gt;</td></tr>
+<tr><td>XZ 示例镇</td></tr>
+<tr><td>BGBH 2020002</td></tr>
+</table>]]></description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.52,39.80,0 116.53,39.80,0 116.53,39.81,0 116.52,39.81,0 116.52,39.80,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>辛地块</name>
+      <description><![CDATA[<table>
+<tr><td>1234567890125</td><td>FID</td><td>10</td><td>BH</td><td>1234567890125</td><td>XZQMC</td><td>示例省示例市示例县</td><td>XZ</td><td>示例镇</td><td>BGBH</td><td>2020003</td></tr>
+</table>]]></description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.54,39.80,0 116.55,39.80,0 116.55,39.81,0 116.54,39.81,0 116.54,39.80,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  </Document>
+</kml>

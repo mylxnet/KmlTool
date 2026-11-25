@@ -795,9 +795,145 @@ function csvNum(v, digits) {
   return v == null || !isFinite(v) ? '""' : '"' + Number(v).toFixed(digits) + '"';
 }
 
+/* 备注拆列：优先按 HTML 表格取键值（含嵌套表、单行交替键值），无表格时按「序号 + 键 值 …」文本解析 */
+const REMARK_KEY_RE = /^[A-Za-z][A-Za-z0-9_.]{0,19}$/;
+const REMARK_SERIAL_RE = /^[0-9][0-9A-Za-z_-]{2,}$/;
+const REMARK_EMPTY = new Set(['<空>', '空', 'NULL', 'null', 'None', '-']);
+
+function remarkVal(s) {
+  const v = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  return REMARK_EMPTY.has(v) ? '' : v;
+}
+
+function addRemarkField(fields, key, val) {
+  if (!fields.has(key)) { fields.set(key, val); return; }
+  const prev = fields.get(key);
+  if (!val || prev === val) return;
+  fields.set(key, prev ? prev + '；' + val : val);
+}
+
+/* 一行内按「键 值」扫描；连续两个键视为前一个键的值为空（如 Curse_type SYQK SJDL） */
+function scanRemarkTokens(tokens, fields) {
+  let pending = null;
+  tokens.forEach(tok => {
+    if (REMARK_KEY_RE.test(tok)) {
+      if (pending != null) addRemarkField(fields, pending, '');
+      pending = tok;
+    } else if (pending != null) {
+      addRemarkField(fields, pending, remarkVal(tok));
+      pending = null;
+    }
+  });
+  if (pending != null) addRemarkField(fields, pending, '');
+}
+
+function descFields(html) {
+  const fields = new Map();
+  const note = [];
+  if (!html) return { fields, note: '' };
+  const doc = new DOMParser().parseFromString(sanitizeHtml(html), 'text/html');
+  const flat = s => s.replace(/\s+/g, ' ').trim();
+  const rowTexts = [];
+  let serial = '';
+
+  const takeSerial = text => {
+    if (serial || !REMARK_SERIAL_RE.test(text)) return false;
+    serial = text;
+    return true;
+  };
+  // 包装行（单元格里再套表格）不按文本取，避免把子表拍平成一串
+  const isWrapperRow = tr => [...tr.cells].some(c => c.querySelector('table'));
+  // 一行里多组「键 值」交替（表格导出常见），成对拆列；首格非键时视为序号
+  const takePairs = cells => {
+    if (cells.length < 3) return false;
+    const leadSerial = !REMARK_KEY_RE.test(cells[0]) && REMARK_KEY_RE.test(cells[1]);
+    const start = leadSerial ? 1 : 0;
+    for (let i = start; i < cells.length; i += 2) {
+      if (!REMARK_KEY_RE.test(cells[i])) return false;
+    }
+    if (leadSerial && !takeSerial(cells[0])) rowTexts.push(cells[0]);
+    for (let i = start; i < cells.length; i += 2) {
+      addRemarkField(fields, cells[i], i + 1 < cells.length ? remarkVal(cells[i + 1]) : '');
+    }
+    return true;
+  };
+
+  const tables = [...doc.body.querySelectorAll('table')];
+  tables.forEach(t => {
+    [...t.rows].forEach(tr => {
+      if (isWrapperRow(tr)) return;
+      const cells = [...tr.cells].map(c => flat(c.textContent));
+      if (!cells.length) return;
+      if (cells.length === 1) {
+        const text = cells[0];
+        if (!text) return;
+        if (takeSerial(text)) return;
+        if (REMARK_KEY_RE.test(text.split(/\s+/)[0])) scanRemarkTokens(text.split(/\s+/), fields);
+        else rowTexts.push(text);
+        return;
+      }
+      if (cells.length >= 3 && cells.every(c => REMARK_KEY_RE.test(c))) {
+        cells.forEach(k => addRemarkField(fields, k, ''));
+        return;
+      }
+      if (takePairs(cells)) return;
+      if (!cells[0]) {
+        const text = cells.filter(Boolean).join(' ');
+        if (text) rowTexts.push(text);
+        return;
+      }
+      addRemarkField(fields, cells[0], remarkVal(cells.slice(1).join(' ')));
+    });
+  });
+  tables.forEach(t => t.remove());
+
+  // 保留换行后再取表格外的文本，避免整段被拍平成一个空格分隔串
+  const markup = doc.body.innerHTML
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n');
+  const tmp = doc.createElement('div');
+  tmp.innerHTML = markup;
+  const rest = (tmp.textContent || '').replace(/\r/g, '').split('\n').map(flat).filter(Boolean);
+  const lines = rowTexts.concat(rest);
+  const textFields = new Map();
+  const textNote = [];
+  lines.forEach((line, idx) => {
+    const colon = line.match(/^([^：:\s]{1,12})[：:]\s*(.+)$/);
+    if (colon) { addRemarkField(textFields, colon[1], remarkVal(colon[2])); return; }
+    if (!serial && idx === 0 && REMARK_SERIAL_RE.test(line)) { serial = line; return; } // 首行单独一行是序号
+    const tokens = line.split(/\s+/);
+    const keyCount = tokens.filter(t => REMARK_KEY_RE.test(t)).length;
+    if (!keyCount) { textNote.push(line); return; }
+    if (!REMARK_KEY_RE.test(tokens[0]) && keyCount >= 2 && REMARK_SERIAL_RE.test(tokens[0])) {
+      // 形如「序号 FID 8 BH …」：首段为序号，其余按键值扫描
+      if (!serial) serial = tokens[0]; else textNote.push(tokens[0]);
+      scanRemarkTokens(tokens.slice(1), textFields);
+    } else {
+      scanRemarkTokens(tokens, textFields);
+    }
+  });
+
+  const merged = new Map();
+  if (serial && (fields.size || textFields.size >= 2)) merged.set('序号', serial);
+  fields.forEach((v, k) => addRemarkField(merged, k, v));
+  // 文字键值至少识别出两个字段才拆列，避免把普通句子误判成键值
+  if (textFields.size >= 2) {
+    textFields.forEach((v, k) => addRemarkField(merged, k, v));
+    note.push(...textNote);
+  } else {
+    note.push(...lines);
+  }
+  return { fields: merged, note: note.join(' ') };
+}
+
 function exportableFaces() {
   return sidebarFaces().filter(recVisible);
 }
+
+const CSV_BASE_HEAD = [
+  '文件名', '名称', '类型', '周长(米)', '面积(平方米)', '面积(当前单位)',
+  '面积单位', '中心经度', '中心纬度', '备注'
+];
 
 function buildCsv() {
   const unitName = UNIT_LABEL[state.unit] || UNIT_LABEL.ha;
@@ -805,25 +941,43 @@ function buildCsv() {
     : state.unit === 'm2' ? 1
     : state.unit === 'km2' ? 1e6
     : 1e4;
-  const lines = [[
-    '文件名', '名称', '类型', '周长(米)', '面积(平方米)', '面积(当前单位)',
-    '面积单位', '中心经度', '中心纬度', '备注'
-  ].map(csvCell).join(',')];
+  const rows = [];
   state.files.forEach(f => {
     f.features.forEach(rec => {
       if (rec.type !== '面' || !recVisible(rec)) return;
-      const c = rec.centroid;
-      lines.push([
-        csvCell(f.name), csvCell(rec.name), csvCell(rec.type),
-        csvNum(rec.perimeterM, 2),
-        csvNum(rec.areaM2, 2),
-        csvNum(rec.areaM2 == null ? null : rec.areaM2 / div, 2),
-        csvCell(unitName),
-        csvNum(c ? c[0] : null, 6),
-        csvNum(c ? c[1] : null, 6),
-        csvCell(rec.plainDesc)
-      ].join(','));
+      rows.push({ file: f.name, rec, desc: descFields(rec.desc) });
     });
+  });
+  // 动态列：导出范围内所有表格标签的并集，按首次出现排序
+  const labels = [];
+  const seen = new Set();
+  rows.forEach(r => r.desc.fields.forEach((v, k) => {
+    if (!seen.has(k)) { seen.add(k); labels.push(k); }
+  }));
+  const used = new Set(CSV_BASE_HEAD);
+  const colName = new Map();
+  labels.forEach(k => {
+    let name = k;
+    while (used.has(name)) name += '(表)';
+    used.add(name);
+    colName.set(k, name);
+  });
+  const head = CSV_BASE_HEAD.concat(labels.map(k => colName.get(k)));
+  const lines = [head.map(csvCell).join(',')];
+  rows.forEach(({ file, rec, desc }) => {
+    const c = rec.centroid;
+    const cells = [
+      csvCell(file), csvCell(rec.name), csvCell(rec.type),
+      csvNum(rec.perimeterM, 2),
+      csvNum(rec.areaM2, 2),
+      csvNum(rec.areaM2 == null ? null : rec.areaM2 / div, 2),
+      csvCell(unitName),
+      csvNum(c ? c[0] : null, 6),
+      csvNum(c ? c[1] : null, 6),
+      csvCell(desc.note)
+    ];
+    labels.forEach(k => cells.push(csvCell(desc.fields.get(k) || '')));
+    lines.push(cells.join(','));
   });
   return '\ufeff' + lines.join('\r\n') + '\r\n';
 }
@@ -835,7 +989,10 @@ function exportCsv() {
   const p = v => String(v).padStart(2, '0');
   const name = 'kml_plots_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
     '_' + p(d.getHours()) + p(d.getMinutes()) + '.csv';
-  const blob = new Blob([buildCsv()], { type: 'text/csv;charset=utf-8' });
+  const csv = buildCsv();
+  const headLine = csv.slice(1, csv.indexOf('\r\n'));
+  const cols = headLine.split('","').length;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -844,7 +1001,7 @@ function exportCsv() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast(`已导出 ${n} 个地块`);
+  toast(`已导出 ${n} 个地块（${cols} 列）`);
 }
 
 /* ================= 文件加载 ================= */
@@ -1014,4 +1171,4 @@ applyTiles();
 renderSidebar();
 
 /* 浏览器自动化测试钩子 */
-window.__kml = { state, map, applyTiles, rerenderFeatures, setSelected, clearSelected, applyVisibility, matchesFilter, flyToFeature, displayGeom, wgs84ToGcj02, sidebarFaces, applyAllChecked, buildCsv, exportCsv };
+window.__kml = { state, map, applyTiles, rerenderFeatures, setSelected, clearSelected, applyVisibility, matchesFilter, flyToFeature, displayGeom, wgs84ToGcj02, sidebarFaces, applyAllChecked, descFields, buildCsv, exportCsv };

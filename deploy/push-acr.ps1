@@ -2,7 +2,7 @@ param(
     [string]$Registry = "registry.cn-hangzhou.aliyuncs.com",
     [string]$Namespace = "your-namespace",
     [string]$Repo = "kml-viewer",
-    [string]$Tag = "v1.0.15",
+    [string]$Tag = "v1.0.16",
     [string]$Username = ""
 )
 $ErrorActionPreference = "Stop"

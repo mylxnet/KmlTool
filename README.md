@@ -4,7 +4,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Web-blue)](https://leafletjs.com/)
 [![Frontend](https://img.shields.io/badge/Frontend-Leaflet%201.9.4-green)](https://leafletjs.com/)
-[![Version](https://img.shields.io/badge/Version-v1.0.15-orange)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.0.16-orange)](CHANGELOG.md)
 [![Deploy](https://img.shields.io/badge/Deploy-静态托管-lightgrey)](doc/DEPLOY.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -35,7 +35,7 @@
 | 坐标系自动纠偏 | 高德 / 腾讯瓦片为 GCJ-02 火星坐标，要素渲染时自动从 WGS84 偏移转换，切回 Esri / 天地图自动还原 |
 | 勾选显隐 | 每个地块前有勾选框，勾选即显示、取消即隐藏，默认全部勾选；显示状态跨底图切换保持 |
 | 全局全选 | 侧栏统计行「全选」复选框支持三态（全选 / 半选 / 全不选），一键切换当前列表全部地块；筛选时可批量调整勾选状态 |
-| CSV 导出 | 「导出 CSV」导出当前可显示地块（筛选时=匹配行，否则=勾选行）；包含文件名、名称、类型、周长、面积、中心经纬度、备注；UTF-8 BOM + 全字段引号，Excel 打开不乱码 |
+| CSV 导出 | 「导出 CSV」导出当前可显示地块（筛选时=匹配行，否则=勾选行）；包含文件名、名称、类型、周长、面积、中心经纬度、备注；KML 备注若是表格（含「外层序号 + 内嵌键值表」结构）或空格分隔的「序号 + 键 值」文本，会按字段拆成独立列（如 FID / BH / XZQMC），自由文本留在「备注」；UTF-8 BOM + 全字段引号，Excel 打开不乱码 |
 | 全字段筛选 | 侧栏筛选框输入任意关键字（名称 / 备注 / 类型 / 文件名 / 周长 / 面积 / 中心坐标），匹配的地块列入列表并在图上显示（含点、线）；清空后恢复勾选状态 |
 | 面积 / 周长 | 按地球椭球面（WGS84）精确计算，面积单位可在平方米 / 公顷 / 亩 / 平方公里间切换 |
 | 点击选中 | 点击要素或侧栏条目即选中并立即弹出信息卡；面（地块）自动平滑平移到屏幕中央（缩放不变，点/线不移动）；选中区域同色加深（面=深色半透明叠层、线=加粗、点=加深圆点），无白色描边；再点同一要素、点空白处、按 Esc 或点 × 取消 |

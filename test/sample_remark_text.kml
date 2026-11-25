@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>甲地块</name>
+      <description>1234567890123 FID 8 BH 1234567890123 XZQDM 123456 XZQMC 示例省示例市示例县 Proj_name 示例养殖场 St_time &lt;空&gt; Ed_time &lt;空&gt; Area 0.022509 Curse_type SYQK SJDL BAWJ BZ XZ 示例镇 XZC 示例村 BGBH 2020001</description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.44,39.82,0 116.45,39.82,0 116.45,39.83,0 116.44,39.83,0 116.44,39.82,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>丁地块</name>
+      <description><![CDATA[1234567890124
+FID 9
+BH 1234567890124
+XZQMC 示例省示例市示例县
+St_time <空>
+Curse_type
+SYQK
+XZ 示例镇
+BGBH 2020002]]></description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.46,39.82,0 116.47,39.82,0 116.47,39.83,0 116.46,39.83,0 116.46,39.82,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  <Placemark>
+      <name>戊地块</name>
+      <description><![CDATA[<table>
+        <tr><td>1234567890125</td></tr>
+        <tr><td>FID 10</td></tr>
+        <tr><td>BH 1234567890125</td></tr>
+        <tr><td>XZQMC 示例省示例市示例县</td></tr>
+        <tr><td>Ed_time</td><td>&lt;空&gt;</td></tr>
+        <tr><td>Curse_type</td></tr>
+        <tr><td>SJDL</td><td></td></tr>
+        <tr><td>XZ 示例镇</td></tr>
+        <tr><td>BGBH 2020003</td></tr>
+      </table>]]></description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.48,39.82,0 116.49,39.82,0 116.49,39.83,0 116.48,39.83,0 116.48,39.82,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  </Document>
+</kml>

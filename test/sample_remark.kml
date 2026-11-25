@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>乙地块</name>
+      <description><![CDATA[<div>附注文字</div><table>
+        <tr><td>权属</td><td>集体</td></tr>
+        <tr><td>权属</td><td>国有</td></tr>
+        <tr><td>=SUM(A1)</td><td>公式标签</td></tr>
+        <tr><td>单格行</td></tr>
+      </table>]]></description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.40,39.80,0 116.41,39.80,0 116.41,39.81,0 116.40,39.81,0 116.40,39.80,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>丙地块</name>
+      <description>纯文本备注</description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        116.42,39.80,0 116.43,39.80,0 116.43,39.81,0 116.42,39.81,0 116.42,39.80,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  </Document>
+</kml>
