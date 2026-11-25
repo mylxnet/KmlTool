@@ -2,12 +2,12 @@
 
 ## 当前版本
 
-v1.0.12（2026-11-24）
+v1.0.13（2026-11-25）
 
 ## 已完成功能
 
 - KML / KMZ 上传（多选、拖拽），KMZ 解压并优先读取 doc.kml
-- 三种底图切换：Esri World Imagery（默认）+ 高德卫星图（含注记）+ 高德普通地图（webrd 路网，自带注记），选择记忆
+- 四种底图切换：Esri World Imagery（默认）+ 天地图卫星图（img_w 影像 + 自带 cia_w 注记，WGS84 免纠偏）+ 高德卫星图（含注记）+ 高德普通地图（webrd 路网，自带注记），选择记忆；天地图卫星 18 级封顶、依赖 tk 的 img/cia 服务
 - 天地图中文注记：Esri 卫星图可叠加天地图透明注记（镇、村、社名与主要 POI / 道路），顶栏「注记来源」三档（天地图 / Esri / 不显示）并记忆；注记按原生层级显示、字号不放大
 - 天地图注记配置：把 `config.example.js` 复制为 `config.js` 填入自用「浏览器端」tk（`config.js` 不入库），留空则自动禁用该选项、回退 Esri 注记
 - 高德底图 GCJ-02 自动纠偏（渲染坐标偏移，计算仍基于 WGS84）
@@ -79,6 +79,7 @@ v1.0.12（2026-11-24）
 - 卫星影像清晰度取决于 Esri / 高德服务本身；Esri 乡村区域最细仅到 18 级；
 - 天地图乡村注记本身稀疏（17 级约 7/25 瓦片有内容），18 级数据几乎只有 POI；注记按原生层级显示、字号不放大，放大到 18 级后乡村地名会更少；高德 / 腾讯注记为 GCJ-02，无法直接叠 Esri 影像；
 - 天地图注记依赖个人申请的 tk（浏览器端），tk 失效或超额时注记缺失，影像与地块功能不受影响；
+- 天地图卫星图同样依赖该 tk，且控制台需勾选影像与影像注记服务；公开影像仅到 18 级（19 级起为「此级别下，该区域无影像」占位图），影像自身有数十米级配准偏差，未做按米平移标定；
 - 点击居中按「整页屏幕中心」计算（地图容器满屏，x≈720）；侧栏 300px 浮层在左侧，居中位置不受其影响，也不会被遮挡；点、线要素点击不移动地图；
 - 清空只复位视野与图层，不重置底图、注记来源、面积单位（偏好属于用户设置，跨清空保留）；
 - 闭合线判定阈值为首尾相距 ≤1 米，未真正闭合的线不会自动转面；
@@ -95,7 +96,7 @@ v1.0.12（2026-11-24）
 
 - [ ] 地图手动测量工具（画线/画面直接出周长面积）
 - [ ] 要素导出 GeoJSON / 截图
-- [ ] 更多底图源切换（天地图注记已接入，可再补天地图影像底图）
+- [ ] 更多底图源切换（天地图注记与卫星图已接入，可再补天地图矢量）
 - [ ] 点聚合
 
 ## 构建发布命令
@@ -105,13 +106,13 @@ node scripts/serve.js            # 本地预览 http://127.0.0.1:8000
 node test/make_samples.mjs       # 重新生成测试样例与预期值
 
 # GitHub Actions（推荐）：打标签推送即自动构建并推 ACR
-git tag v1.0.12 && git push origin v1.0.12
+git tag v1.0.13 && git push origin v1.0.13
 
 # 或本地构建推送（需装有 Docker 的机器；命名空间、Registry 可用参数覆盖）
 powershell -ExecutionPolicy Bypass -File deploy\build.ps1 -Namespace <命名空间>
 powershell -ExecutionPolicy Bypass -File deploy\push-acr.ps1 -Namespace <命名空间> -Username <阿里云账号全名>
 # 服务器
-KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.12 docker compose -f deploy/docker-compose.yml up -d
+KML_IMAGE=registry.cn-hangzhou.aliyuncs.com/<命名空间>/kml-viewer:v1.0.13 docker compose -f deploy/docker-compose.yml up -d
 ```
 
 无构建步骤；发布 = 拷贝 `index.html` + `static/`（+ 可选 doc/）。

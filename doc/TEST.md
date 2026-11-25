@@ -5,7 +5,7 @@
 - 平台：Windows 10（x64）
 - 浏览器：Edge（Chromium，Qoder 内置浏览器自动化实测）；v1.0.4 起截图改用本机 Chrome（`--headless=new` + CDP `Page.captureScreenshot`，因内置浏览器窗口隐藏无法取帧）
 - 服务：`node scripts/serve.js` @ http://127.0.0.1:8000
-- 日期：2026-11-24，版本 v1.0.12（v1.0.1–v1.0.11 用例保留为回归历史；v1.0.12 做手机端适配，用例 80 覆盖 390/360 视口与桌面回归）
+- 日期：2026-11-25，版本 v1.0.13（v1.0.1–v1.0.12 用例保留为回归历史；v1.0.13 新增天地图卫星图，用例 82 覆盖瓦片、纠偏、注记与无 tk 回退）
 
 > 说明：用例 1–44 是 v1.0.1 / v1.0.2 的历史记录；「白色光晕」「悬停提示层」「选中隐藏其他要素」「Esri 19 级封顶」「悬停 3 秒出卡」等行为已在 v1.0.3 变更；v1.0.3 用例 45–58 仍适用。v1.0.4 新增的注记来源改为三档下拉（原「地名标注」复选框，见用例 25 已废止）。v1.0.7 新增清空复位用例 71–72；v1.0.9 天地图 tk 改为本地 `config.js` 外置，用例 74 覆盖有/无配置两种情况。
 
@@ -94,6 +94,7 @@
 | 79 | ACR 镜像重建与脱敏核验（v1.0.11） | 删除旧 ACR 仓库后重跑，镜像只剩脱敏版本且层内无地名 | registry 接口不支持整仓删除（DELETE 返回 401/404，仅授予 pull），由用户在 ACR 控制台删除 `mylxnet/kml-viewer`；重跑 run 45405215908（attempt 2）结论 success，ACR 自动重建仓库，标签列表仅 `latest`、`v1.0.11`，两者 manifest 均 200；逐层解压扫描：`v1.0.10` 曾有两层含真实站点名，重建后两层均 `siteName=false` 且版本为 v1.0.11 | 通过 |
 | 80 | 手机端布局与信息卡避让（v1.0.12） | ≤768px 工具栏两行、侧栏底部抽屉、信息卡不越界、桌面样式不变 | 无头 Chrome 移动仿真 390×844（DPR1 + touch）：toolbar 92px、下拉组 370×32、sidebar 374×354（42dvh）、地块行 42px、筛选框 16px、`scrollWidth=390` 无横向溢出；加载 sample.kml 后点头行，信息卡 rect（left 97 / top 100 / right 292 / bottom 253）在视口内且位于工具栏下方、抽屉上方，地块中心 y=266 落在可见区；360×640 下 `scrollWidth=360`、sidebar 344×269；切回 1440×900：toolbar 56、sidebar 300、筛选 13px，均无溢出；`Runtime.exceptionThrown` 0 条 | 通过 |
 | 81 | v1.0.12 Actions 实跑与 ACR 推送 | 推送 tag 后构建成功，产出 v1.0.12 与 latest | 推送 commit b625dc7 与 tag v1.0.12，触发 run 45415825844，结论 success；日志中 build-push 步骤推送 `kml-viewer:v1.0.12` 与 `kml-viewer:latest`，同一 digest `sha256:08f2b673453164ccbed81c58cfa3c94fe2bcdc385cb8777473dfd070d9b3e5d0`，镜像标签 `org.opencontainers.image.version=v1.0.12` | 通过 |
+| 82 | 天地图卫星图接入（v1.0.13） | 新增第四底图、WGS84 免纠偏、18 级封顶、注记开关、无 tk 回退 | 无头 Chrome 1440×900：底图下拉四项 `esri/tdt/gaode/gaode-vec`；切到 tdt 后 `img_w` 与 `cia_w` 请求均 200（各 300+ 次，失败 0），`displayGeom([116.391213,39.90727])` 原样返回，切 gaode 时为 `116.397454,39.908671`（说明 tdt 未误做 GCJ 偏移）；`cia_w` 图层数：开=1、选「不显示注记」=0、再开=1；`localStorage.kmlBasemap=tdt` 记住选择；无 tk 副本中该项 `disabled`、选中值回退 `esri`；手机 390 宽 `scrollWidth=390` 无溢出；`Runtime.exceptionThrown` 0。瓦片实测：z18 影像 18.4KB 真实图，z19/z20 均 4.7KB 占位图（提示「此级别下，该区域无影像」），cia 19/20 为 213B 空图 | 通过 |
 
 ## 数值核对方式
 
@@ -111,6 +112,7 @@
 - 清空仅移除图层并把视野飞回初始全球视野（`[34,108]` 4 级），底图 / 注记来源 / 面积单位偏好跨清空保留；
 - Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.12，run 45415825844）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
 - 手机端不显示 Leaflet +/- 与比例尺，依赖双指缩放；底部抽屉固定 42dvh（最高 380px），横屏或超矮屏时可见地图区会变小；手机浏览器不支持拖拽上传，使用顶部「上传 KML / KMZ」按钮；
+- 天地图卫星图依赖 tk 且需在控制台勾选影像与影像注记服务；公开影像仅到 18 级，19 级起为占位图；影像自身有数十米级配准偏差，本版未做按米平移标定；
 - Actions 首轮实跑暴露 ACR 对 buildx 默认 provenance 的兼容问题（`unknown manifest class for application/vnd.oci.empty.v1+json`），v1.0.10 已关闭 `provenance`/`sbom` 并实跑通过；后续若改动构建步骤，需保留这两项关闭；
 - 天地图乡村注记稀疏（17 级约 7/25 瓦片有内容，18 级仅零星 POI）；注记按原生层级显示、字号不放大，放大到 18 级后乡村地名会变少（数据限制）；tk 为个人「浏览器端」密钥，失效时仅注记缺失；
 - Qoder 内置浏览器窗口不可见时截图报 `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE`，v1.0.4 起的页面截图改用本机 Chrome 无头 + CDP 完成；

@@ -8,7 +8,11 @@ const GAODE_MAX_ZOOM = 18;
 const TIANDITU_TK = (window.KML_CONFIG && window.KML_CONFIG.tiandituTk) || '';
 // 可选站点名：config.js 的 siteName；留空时页面使用通用「卫星图」标题
 const SITE_NAME = ((window.KML_CONFIG && window.KML_CONFIG.siteName) || '').trim();
-const TDT_LABEL_URL = 'https://t{s}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=' + encodeURIComponent(TIANDITU_TK);
+const TDT_MAX_ZOOM = 18; // 19 级起返回「此级别下，该区域无影像」占位图
+const tdtWmtsUrl = layer => 'https://t{s}.tianditu.gov.cn/' + layer + '_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=' + layer + '&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=' + encodeURIComponent(TIANDITU_TK);
+const TDT_LABEL_URL = tdtWmtsUrl('cva');
+const TDT_IMG_URL = tdtWmtsUrl('img');
+const TDT_CIA_URL = tdtWmtsUrl('cia');
 const PALETTE = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60', '#6d4c41'];
 
 /* ================= 全局状态 ================= */
@@ -16,13 +20,18 @@ const state = {
   files: new Map(), // id -> { id, name, group, features: [], visible }
   nextId: 1,
   unit: localStorage.getItem('kmlUnit') || 'ha',
-  basemap: localStorage.getItem('kmlBasemap') || 'esri', // esri | gaode | gaode-vec
+  basemap: localStorage.getItem('kmlBasemap') || 'esri', // esri | tdt | gaode | gaode-vec
   labels: localStorage.getItem('kmlLabels') || (TIANDITU_TK ? 'tdt' : 'esri'), // off | esri | tdt
   filter: '', // 筛选关键词（小写、已 trim）
   selected: null // 当前选中的要素记录
 };
 
 const $ = id => document.getElementById(id);
+
+if (!TIANDITU_TK && state.basemap === 'tdt') {
+  state.basemap = 'esri';
+  localStorage.setItem('kmlBasemap', 'esri');
+}
 
 if (SITE_NAME) {
   const withSite = s => s.replace(/^卫星图/, SITE_NAME + '卫星图');
@@ -63,13 +72,39 @@ const tdtLabels = TIANDITU_TK
       maxZoom: ESRI_MAX_ZOOM, attribution: '注记 © 天地图'
     })
   : null;
+// 天地图卫星：CGCS2000≈WGS84，不做 GCJ-02 偏移；未配置 tk 时不创建
+const tdtSat = TIANDITU_TK
+  ? L.tileLayer(TDT_IMG_URL, {
+      subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+      maxZoom: TDT_MAX_ZOOM, attribution: '影像 © 天地图'
+    })
+  : null;
+const tdtSatLabels = TIANDITU_TK
+  ? L.tileLayer(TDT_CIA_URL, {
+      subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+      maxZoom: TDT_MAX_ZOOM, attribution: '注记 © 天地图'
+    })
+  : null;
 
-function isGcjBasemap() { return state.basemap !== 'esri'; }
-function currentMaxZoom() { return state.basemap === 'esri' ? ESRI_MAX_ZOOM : GAODE_MAX_ZOOM; }
+let tdtWarned = false;
+if (tdtSat) tdtSat.on('tileerror', () => {
+  if (tdtWarned || state.basemap !== 'tdt') return;
+  tdtWarned = true;
+  toast('天地图瓦片加载失败，请确认 tk 已开通影像与影像注记服务', true);
+});
+
+function isGcjBasemap() { return state.basemap === 'gaode' || state.basemap === 'gaode-vec'; }
+function currentMaxZoom() {
+  if (state.basemap === 'tdt') return TDT_MAX_ZOOM;
+  return state.basemap === 'esri' ? ESRI_MAX_ZOOM : GAODE_MAX_ZOOM;
+}
 
 function applyTiles() {
-  [esriBase, esriLabels, gaodeBase, gaodeLabels, gaodeVec, tdtLabels].forEach(l => { if (l) map.removeLayer(l); });
-  if (state.basemap === 'gaode') {
+  [esriBase, esriLabels, gaodeBase, gaodeLabels, gaodeVec, tdtLabels, tdtSat, tdtSatLabels].forEach(l => { if (l) map.removeLayer(l); });
+  if (state.basemap === 'tdt') {
+    if (tdtSat) tdtSat.addTo(map);
+    if (tdtSatLabels && state.labels !== 'off') tdtSatLabels.addTo(map);
+  } else if (state.basemap === 'gaode') {
     gaodeBase.addTo(map);
     if (state.labels !== 'off') gaodeLabels.addTo(map);
   } else if (state.basemap === 'gaode-vec') {
@@ -785,15 +820,30 @@ unitSel.addEventListener('change', e => {
 });
 
 const basemapSel = $('sel-basemap');
+const tdtBaseOption = [...basemapSel.options].find(o => o.value === 'tdt');
+if (!tdtSat) {
+  tdtBaseOption.disabled = true;
+  tdtBaseOption.title = '未配置天地图 tk';
+}
 if ([...basemapSel.options].some(o => o.value === state.basemap)) basemapSel.value = state.basemap;
+
+const labelsSel = $('sel-labels');
+const LABELS_HINT = labelsSel.title;
+function syncLabelsHint() {
+  labelsSel.title = state.basemap === 'tdt'
+    ? '天地图卫星图自带注记；选「不显示注记」可隐藏'
+    : LABELS_HINT;
+}
+syncLabelsHint();
+
 basemapSel.addEventListener('change', e => {
   state.basemap = e.target.value;
   localStorage.setItem('kmlBasemap', state.basemap);
   applyTiles();
   rerenderFeatures();
+  syncLabelsHint();
 });
 
-const labelsSel = $('sel-labels');
 const tdtOption = [...labelsSel.options].find(o => o.value === 'tdt');
 if (!tdtLabels) {
   tdtOption.disabled = true;
