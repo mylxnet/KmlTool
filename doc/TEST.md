@@ -98,6 +98,7 @@
 | 83 | 腾讯卫星图接入（v1.0.14） | 新增第五底图、GCJ-02 纠偏、注记开关、18 级封顶、无需密钥 | 无头 Chrome 1440×900（通用 config，无站点名）：底图下拉五项 `esri/tdt/gaode/gaode-vec/qq`；切 qq 后腾讯影像 / 注记图层各 1，`displayGeom({type:'Point',coordinates:[116.391213,39.90727]})` 返回 `[116.397454,39.908671]`，与 `wgs84ToGcj02` 逐位一致，切回 Esri 返回原坐标；z18 下 sat 35 张、label 35 张请求均 200，全程 sat 240 / label 233 张全 200，458 条 `ERR_ABORTED` 均为缩放动画中 Leaflet 主动取消的旧瓦片（非加载失败）；`labels=off` 后腾讯注记图层 0、影像保留；`localStorage.kmlBasemap=qq` 记住选择；手机 390 宽 `scrollWidth=390`、工具栏 92px、抽屉 374px 无溢出；`Runtime.exceptionThrown` 0。瓦片实测：z18 影像 10.9KB 真实图，z19/20 为 1.2KB 占位图；注记 z16 10.5KB、z18 4.7KB 透明 PNG（256×256，透明通道），z19 169B 空图 | 通过 |
 | 84 | v1.0.14 Actions 实跑与 ACR 推送 | 推送 main + tag v1.0.14 后构建成功，产出 v1.0.14 与 latest | main `aace91f..4e406b1`，tag v1.0.14 触发 run 45591544304，结论 success；日志中 build-push 步骤推送 `kml-viewer:v1.0.14` 与 `kml-viewer:latest`，同一 digest `sha256:a8d800473ac9cf05aeaef055dde46e38c881355bb9ca9d8bdec4ce65161c2727`，镜像标签 `org.opencontainers.image.version=v1.0.14`，provenance/sbom 均 disabled | 通过 |
 | 85 | 全局全选 + CSV 导出 + 图标移除（v1.0.15） | 侧栏三态全选、筛选口径不变、CSV 内容/编码/转义正确、按钮禁用态、手机无溢出 | 无头 Chrome 1440×900 上传 sample.kml（3 个面）：无 `.icon-btn`，文件头仅「sample.kml（3）」；全选框默认勾选，点击→全不选（地图移除、导出禁用、无半选），再点→全选；单行取消→半选；筛选「地块A」剩 1 行未勾选时导出仍可用、点全选后该行勾选；筛选「开发区」2 行点击全不选后地图仍显示（筛选优先）、可导出；清空筛选后全不选→地图无地块、导出禁用；CSV 以 BOM 开头、CRLF 结尾、表头 10 列、3 行数据，面积/周长 2 位、中心经纬度 6 位，`=SUM(A1)` 名称导出为 `'=SUM(A1)`，多行备注压成单空格；真实点击下载得 `kml_plots_20261125_1927.csv`（4 行含表头，BOM 正确）；390×844 下 `scrollWidth=390`、导出按钮在视口内；`Runtime.exceptionThrown` 0 条；截图品牌强制改为通用「卫星图」后保存 `shot_19_csv_sidebar.png` | 通过 |
+| 86 | v1.0.15 Actions 实跑与 ACR 推送 | 推送 main + tag v1.0.15 后构建成功，产出 v1.0.15 与 latest | main `e003f31..bb7176f`，tag v1.0.15 触发 run 45606055300，结论 success（11:36:47–11:37:22Z）；build-push 步骤推送 `kml-viewer:v1.0.15` 与 `kml-viewer:latest`，同一 digest `sha256:57b0bc3c6ee02b856c38ead6ac54788d692763ff18c6c612d2bb04eb4ef5b6b2`，镜像标签 `org.opencontainers.image.version=v1.0.15`，provenance/sbom 均 disabled | 通过 |
 
 ## 数值核对方式
 
@@ -114,7 +115,7 @@
 - 筛选基于「当前单位下格式化的数值文本」匹配，切换面积单位后同一数字关键字可能不再命中（属预期）；
 - 点击居中按整页屏幕中心计算（地图满屏，x≈720），侧栏浮层不影响结果；点、线点击不居中；双击侧栏行的 `flyToBounds` 会覆盖单击的居中动画；
 - 清空仅移除图层并把视野飞回初始全球视野（`[34,108]` 4 级），底图 / 注记来源 / 面积单位偏好跨清空保留；
-- Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.14，run 45591544304）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
+- Docker 镜像构建已由 GitHub Actions 实跑验证（v1.0.15，run 45606055300）；开发机未安装 Docker，容器运行与 nginx 配置仍属静态核对，未做本地容器实跑；
 - 手机端不显示 Leaflet +/- 与比例尺，依赖双指缩放；底部抽屉固定 42dvh（最高 380px），横屏或超矮屏时可见地图区会变小；手机浏览器不支持拖拽上传，使用顶部「上传 KML / KMZ」按钮；
 - 天地图卫星图依赖 tk 且需在控制台勾选影像与影像注记服务；公开影像仅到 18 级，19 级起为占位图；影像自身有数十米级配准偏差，本版未做按米平移标定；
 - Actions 首轮实跑暴露 ACR 对 buildx 默认 provenance 的兼容问题（`unknown manifest class for application/vnd.oci.empty.v1+json`），v1.0.10 已关闭 `provenance`/`sbom` 并实跑通过；后续若改动构建步骤，需保留这两项关闭；

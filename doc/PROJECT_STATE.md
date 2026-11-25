@@ -24,7 +24,7 @@ v1.0.15（2026-11-25）
 - 首页半透明主题面板「卫星图 KML 定位查询」+ 署名，无选择文件按钮（工具条上传或拖拽）；标题默认通用，`config.js` 的 `siteName` 可前置自用站点名
 - 清空复位：移除全部图层后地图平滑飞回初始全球视野（`HOME_VIEW` `[34,108]` 4 级），首页主题面板重现；底图/注记/单位偏好保留
 - Docker / ACR 部署：`deploy/Dockerfile`（nginx:1.27-alpine）+ `nginx.conf` + `docker-compose.yml` + 构建/推送脚本（PowerShell / sh），部署手册见 `doc/DEPLOY.md` 方式四
-- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.14 实跑成功 run 45591544304，digest `sha256:a8d80047…`，ACR 现有 v1.0.11、v1.0.12、v1.0.14、latest，关闭 provenance/sbom 以兼容 ACR）
+- GitHub Actions 自动发布：`.github/workflows/acr.yml`，推送 `v*` 标签自动构建并推送到 ACR（Secrets：ACR_REGISTRY / ACR_NAMESPACE / ACR_USERNAME / ACR_PASSWORD / TIANDITU_TK；v1.0.15 实跑成功 run 45606055300，digest `sha256:57b0bc3c…`（v1.0.14 为 run 45591544304、digest `sha256:a8d80047…`），ACR 现有 v1.0.11、v1.0.12、v1.0.14、v1.0.15、latest，关闭 provenance/sbom 以兼容 ACR）
 - tk 外置：源码不含天地图 tk，本地 `config.js`（不入库）提供，新增 `config.example.js` 模板
 - 面积单位切换（平方米/公顷/亩/平方公里）并记忆，顶栏下拉
 - 编码兼容 UTF-8 / GB18030 / GBK
